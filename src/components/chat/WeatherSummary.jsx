@@ -1,0 +1,63 @@
+import React from 'react';
+import { Sparkles, ArrowRight } from 'lucide-react';
+
+export function WeatherSummary({ weather, onOpenChat }) {
+  if (!weather) return null;
+
+  const { location, current } = weather;
+  const temp = current.temperature;
+  const condition = current.condition;
+
+  return (
+    <div className="glass-card" style={{
+      padding: '1.25rem',
+      borderColor: 'rgba(99, 102, 241, 0.3)',
+      background: 'radial-gradient(circle at 100% 0%, rgba(99, 102, 241, 0.1) 0%, var(--surface-color) 70%)',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '0.75rem'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent-indigo)' }}>
+          <Sparkles size={16} />
+          <span>WeatherGPT AI Summary</span>
+        </div>
+        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Simulated AI Insight</span>
+      </div>
+
+      <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+        Today in <strong>{location.city}</strong> will remain <strong>{condition.toLowerCase()}</strong> with temperatures averaging <strong>{temp}°C</strong>.
+      </p>
+
+      <div style={{
+        background: 'var(--accent-glow)',
+        padding: '0.65rem 0.85rem',
+        borderRadius: 'var(--radius-md)',
+        fontSize: '0.82rem',
+        color: 'var(--accent-blue)',
+        fontWeight: 600
+      }}>
+        💡 <strong>Tip:</strong> Stay hydrated during peak afternoon hours if spending time outdoors.
+      </div>
+
+      {onOpenChat && (
+        <button
+          onClick={onOpenChat}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: '0.35rem',
+            fontSize: '0.82rem',
+            fontWeight: 700,
+            color: 'var(--accent-blue)',
+            marginTop: '0.25rem'
+          }}
+        >
+          <span>Ask WeatherGPT details</span>
+          <ArrowRight size={14} />
+        </button>
+      )}
+    </div>
+  );
+}
