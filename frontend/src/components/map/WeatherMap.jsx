@@ -1,9 +1,29 @@
-import React, { useState } from 'react';
-import { MapPin, Navigation, Layers, ShieldAlert, Thermometer, Droplets, Wind, Cloud, Activity, Table, Check } from 'lucide-react';
-import { ALL_DEMO_CITIES } from '../../data/weatherData';
+import React, { useState, useEffect, useMemo } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import { 
+  MapPin, Table, ShieldAlert, Thermometer, Droplets, Wind, Cloud, 
+  Activity, Compass, Globe, Info, RefreshCw, Check
+} from 'lucide-react';
+import { ALL_DEMO_CITIES, getMockWeather } from '../../data/weatherData';
+import { fetchNearbyLocationsWeather, fetchWeatherByCoords } from '../../services/api';
 import { formatTemperature } from '../../utils/formatTemperature';
 import { formatWind } from '../../utils/formatWind';
 import { MapLayerSelector } from './MapLayerSelector';
+
+// Helper component to center and zoom map smoothly when selected location changes
+function MapRecenter({ center, zoom = 11 }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center && center[0] && center[1]) {
+      map.flyTo(center, zoom, {
+        animate: true,
+        duration: 1.2
+      });
+    }
+  }, [center, zoom, map]);
+  return null;
+}
 
 export function WeatherMap({
   selectedCity = 'jodhpur',
@@ -16,46 +36,95 @@ export function WeatherMap({
   t = (k) => k
 }) {
   const [showAccessibleList, setShowAccessibleList] = useState(false);
-  const [hoveredCity, setHoveredCity] = useState(null);
+  const [nearbyStations, setNearbyStations] = useState([]);
+  const [loadingNearby, setLoadingNearby] = useState(false);
 
-  // SVG coordinate transformation for geographic bounds (Equirectangular projection)
-  // Latitude: -60 to 70 -> Y: 360 to 40
-  // Longitude: -100 to 150 -> X: 50 to 750
-  const mapWidth = 800;
-  const mapHeight = 440;
+  // Determine lat, lon, and name for current selected city
+  const cityMock = useMemo(() => {
+    return ALL_DEMO_CITIES.find(
+      c => c.city.toLowerCase() === selectedCity.toLowerCase() || c.name.toLowerCase() === selectedCity.toLowerCase()
+    ) || ALL_DEMO_CITIES[0];
+  }, [selectedCity]);
 
-  const projectCoords = (lat, lon) => {
-    // Normalizing between longitude -120 to +150
-    const x = ((lon + 120) / 270) * (mapWidth - 100) + 50;
-    // Normalizing between latitude -40 to +70
-    const y = ((70 - lat) / 110) * (mapHeight - 80) + 40;
-    return {
-      x: Math.max(40, Math.min(mapWidth - 40, x)),
-      y: Math.max(30, Math.min(mapHeight - 30, y))
-    };
+  const mapCenter = useMemo(() => {
+    if (geoCoords && geoCoords.latitude && geoCoords.longitude && selectedCity === 'jodhpur') {
+      return [geoCoords.latitude, geoCoords.longitude];
+    }
+    return [cityMock.lat, cityMock.lon];
+  }, [cityMock, geoCoords, selectedCity]);
+
+  // Load live nearby station telemetry whenever selected location changes
+  useEffect(() => {
+    let isMounted = true;
+    async function loadNearby() {
+      setLoadingNearby(true);
+      try {
+        const stations = await fetchNearbyLocationsWeather(cityMock.lat, cityMock.lon, cityMock.name);
+        if (isMounted) {
+          setNearbyStations(stations);
+        }
+      } catch (err) {
+        console.warn("Could not load nearby stations:", err);
+      } finally {
+        if (isMounted) setLoadingNearby(false);
+      }
+    }
+    loadNearby();
+    return () => { isMounted = false; };
+  }, [cityMock.lat, cityMock.lon, cityMock.name]);
+
+  // Helper to generate dynamic divIcon HTML for Leaflet markers based on active layer
+  const createMarkerIcon = (stationName, stationData, isSelected) => {
+    let layerValue = formatTemperature(stationData.temp || cityMock.temp, tempUnit);
+    
+    if (activeLayer === 'rain') {
+      layerValue = `${stationData.rainProbability || 10}% Rain`;
+    } else if (activeLayer === 'wind') {
+      layerValue = formatWind(stationData.windSpeed || 12, windUnit, stationData.windDirection || 'NW');
+    } else if (activeLayer === 'clouds') {
+      layerValue = `${stationData.cloudCover || 20}% Cloud`;
+    } else if (activeLayer === 'aqi') {
+      layerValue = `AQI ${stationData.aqi || 80}`;
+    } else if (activeLayer === 'alerts') {
+      layerValue = stationData.hasAlert ? 'ALERT' : 'Normal';
+    }
+
+    const htmlContent = `
+      <div class="map-marker-pin ${isSelected ? 'map-marker-selected' : 'map-marker-nearby'}">
+        <span style="font-weight: 700;">${stationName}</span>
+        <strong style="margin-left: 2px;">${layerValue}</strong>
+      </div>
+    `;
+
+    return L.divIcon({
+      className: 'leaflet-custom-icon',
+      html: htmlContent,
+      iconSize: [130, 36],
+      iconAnchor: [65, 18]
+    });
   };
-
-  const currentSelectedCityData = ALL_DEMO_CITIES.find(
-    c => c.city.toLowerCase() === selectedCity.toLowerCase()
-  ) || ALL_DEMO_CITIES[0];
 
   return (
     <div className="glass-card" style={{ padding: '1.25rem' }}>
-      {/* Map Header & Layer Controls */}
+      {/* Map Header & Accessibility Controls */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <div style={{
-            padding: '0.4rem',
-            borderRadius: 'var(--radius-sm)',
+            padding: '0.45rem',
+            borderRadius: 'var(--radius-md)',
             background: 'var(--accent-glow)',
-            color: 'var(--accent-blue)'
+            color: 'var(--accent-blue)',
+            display: 'flex',
+            alignItems: 'center'
           }}>
-            <MapPin size={18} />
+            <MapPin size={20} />
           </div>
           <div>
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 850 }}>Location-Aware Weather Map</h2>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Interactive Geospatial Weather Telemetry • Click any pin to sync dashboard
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 850, letterSpacing: '-0.01em' }}>
+              Real Geospatial Weather Map & Radar
+            </h2>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              OpenStreetMap Basemap • Open-Meteo Telemetry • Click pins or chips to sync
             </span>
           </div>
         </div>
@@ -63,20 +132,21 @@ export function WeatherMap({
         <button
           onClick={() => setShowAccessibleList(!showAccessibleList)}
           className="btn-secondary"
-          style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
-          aria-label={showAccessibleList ? "Switch to interactive map" : "Switch to accessible table list"}
+          style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', gap: '0.35rem' }}
+          aria-label={showAccessibleList ? "Switch to interactive map view" : "Switch to accessible location list table"}
         >
-          <Table size={14} />
+          <Table size={15} />
           <span>{showAccessibleList ? 'View Interactive Map' : 'Accessible Location List'}</span>
         </button>
       </div>
 
+      {/* Layer Selector Bar */}
       <div style={{ marginBottom: '1rem' }}>
         <MapLayerSelector activeLayer={activeLayer} onSelectLayer={onSelectLayer} t={t} />
       </div>
 
       {showAccessibleList ? (
-        /* Accessible Non-Map Location List Alternative (A18 Accessibility Requirement) */
+        /* Accessible Table List View (Accessibility Requirement #19) */
         <div style={{ overflowX: 'auto', marginTop: '0.5rem' }}>
           <table 
             style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}
@@ -84,47 +154,51 @@ export function WeatherMap({
           >
             <thead>
               <tr style={{ borderBottom: '1px solid var(--surface-border)', color: 'var(--text-muted)' }}>
-                <th style={{ padding: '0.6rem', textAlign: 'left' }}>City & Country</th>
-                <th style={{ padding: '0.6rem', textAlign: 'right' }}>Coordinates</th>
-                <th style={{ padding: '0.6rem', textAlign: 'right' }}>Temperature</th>
-                <th style={{ padding: '0.6rem', textAlign: 'right' }}>Condition</th>
-                <th style={{ padding: '0.6rem', textAlign: 'right' }}>Rain Chance</th>
-                <th style={{ padding: '0.6rem', textAlign: 'center' }}>Action</th>
+                <th style={{ padding: '0.65rem', textAlign: 'left' }}>Location Name</th>
+                <th style={{ padding: '0.65rem', textAlign: 'right' }}>Coordinates</th>
+                <th style={{ padding: '0.65rem', textAlign: 'right' }}>Temperature</th>
+                <th style={{ padding: '0.65rem', textAlign: 'right' }}>Condition</th>
+                <th style={{ padding: '0.65rem', textAlign: 'right' }}>Rain Chance</th>
+                <th style={{ padding: '0.65rem', textAlign: 'right' }}>AQI</th>
+                <th style={{ padding: '0.65rem', textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
             <tbody>
-              {ALL_DEMO_CITIES.map((c) => {
-                const isSelected = c.city.toLowerCase() === selectedCity.toLowerCase();
+              {nearbyStations.map((station) => {
+                const isSelected = station.city.toLowerCase() === selectedCity.toLowerCase() || station.isCenter;
                 return (
                   <tr 
-                    key={c.id} 
+                    key={station.id} 
                     style={{ 
                       borderBottom: '1px solid var(--surface-border)',
                       background: isSelected ? 'var(--accent-glow)' : 'transparent'
                     }}
                   >
-                    <td style={{ padding: '0.6rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <MapPin size={14} style={{ color: isSelected ? 'var(--accent-blue)' : 'var(--text-muted)' }} />
-                      <span>{c.name}, {c.country}</span>
-                      {isSelected && <span className="badge badge-info" style={{ fontSize: '0.65rem' }}>Selected</span>}
+                    <td style={{ padding: '0.65rem', fontWeight: 750, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <MapPin size={15} style={{ color: isSelected ? 'var(--accent-blue)' : 'var(--text-muted)' }} />
+                      <span>{station.name}</span>
+                      {isSelected && <span className="badge badge-info" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>Selected</span>}
                     </td>
-                    <td style={{ padding: '0.6rem', textAlign: 'right', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                      {c.lat.toFixed(2)}°, {c.lon.toFixed(2)}°
+                    <td style={{ padding: '0.65rem', textAlign: 'right', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                      {station.lat.toFixed(2)}°, {station.lon.toFixed(2)}°
                     </td>
-                    <td style={{ padding: '0.6rem', textAlign: 'right', fontWeight: 700 }}>
-                      {formatTemperature(c.temp, tempUnit)}
+                    <td style={{ padding: '0.65rem', textAlign: 'right', fontWeight: 750 }}>
+                      {formatTemperature(station.temp, tempUnit)}
                     </td>
-                    <td style={{ padding: '0.6rem', textAlign: 'right', color: 'var(--text-secondary)' }}>
-                      {c.condition}
+                    <td style={{ padding: '0.65rem', textAlign: 'right', color: 'var(--text-secondary)' }}>
+                      {station.condition}
                     </td>
-                    <td style={{ padding: '0.6rem', textAlign: 'right', color: '#38bdf8' }}>
-                      {c.rainProbability}%
+                    <td style={{ padding: '0.65rem', textAlign: 'right', color: '#38bdf8', fontWeight: 600 }}>
+                      {station.rainProbability}%
                     </td>
-                    <td style={{ padding: '0.6rem', textAlign: 'center' }}>
+                    <td style={{ padding: '0.65rem', textAlign: 'right', color: station.aqi > 100 ? '#facc15' : '#10b981', fontWeight: 600 }}>
+                      {station.aqi}
+                    </td>
+                    <td style={{ padding: '0.65rem', textAlign: 'center' }}>
                       <button
-                        onClick={() => onSelectCity(c.city)}
+                        onClick={() => onSelectCity(station.name)}
                         className="btn-secondary"
-                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                        style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
                       >
                         {isSelected ? 'Active' : 'Select'}
                       </button>
@@ -136,214 +210,169 @@ export function WeatherMap({
           </table>
         </div>
       ) : (
-        /* Geospatial Interactive Map Graphic Canvas */
-        <div style={{
-          position: 'relative',
-          width: '100%',
-          overflowX: 'auto',
-          background: 'radial-gradient(ellipse at 50% 50%, #0f172a 0%, #060913 100%)',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--surface-border)',
-          boxShadow: 'inset 0 0 25px rgba(0,0,0,0.5)'
-        }}>
-          <svg
-            viewBox={`0 0 ${mapWidth} ${mapHeight}`}
-            style={{ width: '100%', minWidth: '600px', height: 'auto', display: 'block' }}
-            role="region"
-            aria-label="Interactive world and regional weather map"
+        /* Real Leaflet OpenStreetMap Container Canvas */
+        <div style={{ position: 'relative', width: '100%', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+          <MapContainer
+            center={mapCenter}
+            zoom={11}
+            scrollWheelZoom={true}
+            className="leaflet-weather-container"
           >
-            {/* Latitude and Longitude Reference Grid */}
-            <defs>
-              <pattern id="mapGrid" width="40" height="40" patternUnits="userSpaceOnUse">
-                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255, 255, 255, 0.04)" strokeWidth="1" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#mapGrid)" />
+            {/* Smooth Camera Auto-Recenter Controller */}
+            <MapRecenter center={mapCenter} zoom={11} />
 
-            {/* Stylized Continental Landmass Outlines (Equirectangular representation) */}
-            <g fill="rgba(30, 41, 59, 0.5)" stroke="rgba(255, 255, 255, 0.12)" strokeWidth="1">
-              {/* Eurasia & India Subcontinent */}
-              <path d="M 380 90 Q 450 80 540 100 Q 620 120 660 180 Q 580 220 540 250 L 510 290 L 490 280 L 470 240 L 410 220 L 390 160 Z" />
-              <path d="M 470 230 L 510 240 L 500 295 L 485 300 L 470 260 Z" fill="rgba(56, 189, 248, 0.08)" stroke="rgba(56, 189, 248, 0.3)" />
-              {/* Africa */}
-              <path d="M 390 180 L 460 190 L 480 260 L 450 360 L 420 370 L 380 280 L 370 220 Z" />
-              {/* Americas */}
-              <path d="M 120 70 L 220 80 L 250 140 L 200 210 L 150 160 Z" />
-              <path d="M 210 220 L 280 260 L 260 380 L 210 390 L 190 290 Z" />
-              {/* Japan Archipelago */}
-              <path d="M 670 160 Q 685 180 675 200" stroke="rgba(255,255,255,0.4)" strokeWidth="3" fill="none" />
-              {/* British Isles */}
-              <path d="M 370 120 Q 380 115 375 135 Z" fill="rgba(255,255,255,0.2)" />
-            </g>
+            {/* OpenStreetMap Real Tile Layer */}
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
 
-            {/* Simulated Cloud / Rain / Wind Layer Effects */}
-            {activeLayer === 'rain' && (
-              <g fill="none" stroke="rgba(56, 189, 248, 0.25)" strokeWidth="2" strokeDasharray="3,3">
-                <circle cx="500" cy="270" r="45" />
-                <circle cx="485" cy="285" r="35" />
-                <circle cx="375" cy="130" r="30" />
-                <circle cx="210" cy="210" r="40" />
-              </g>
-            )}
+            {/* Selected Primary Location Leaflet Marker */}
+            <Marker
+              position={mapCenter}
+              icon={createMarkerIcon(cityMock.name, {
+                temp: cityMock.temp,
+                rainProbability: cityMock.rainProbability,
+                windSpeed: cityMock.windSpeed,
+                windDirection: cityMock.windDirection,
+                cloudCover: cityMock.cloudCover,
+                aqi: cityMock.aqi,
+                hasAlert: cityMock.hasAlert
+              }, true)}
+              evented={true}
+            >
+              <Popup>
+                <div style={{ padding: '0.4rem', color: 'var(--text-primary)', minWidth: '180px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.35rem' }}>
+                    <MapPin size={15} style={{ color: 'var(--accent-blue)' }} />
+                    <strong style={{ fontSize: '0.95rem' }}>{cityMock.name}</strong>
+                  </div>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
+                    {formatTemperature(cityMock.temp, tempUnit)} • {cityMock.condition}
+                  </p>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem' }}>
+                    <div>Rain: <span style={{ color: '#38bdf8' }}>{cityMock.rainProbability}%</span></div>
+                    <div>Wind: <span>{formatWind(cityMock.windSpeed, windUnit)}</span></div>
+                    <div>Humidity: <span>{cityMock.humidity}%</span></div>
+                    <div>AQI: <span style={{ color: '#10b981' }}>{cityMock.aqi || 80}</span></div>
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
 
-            {activeLayer === 'clouds' && (
-              <g fill="rgba(255, 255, 255, 0.08)">
-                <ellipse cx="490" cy="250" rx="60" ry="25" />
-                <ellipse cx="380" cy="130" rx="45" ry="20" />
-                <ellipse cx="210" cy="210" rx="55" ry="30" />
-              </g>
-            )}
-
-            {/* Geolocation Marker if available */}
-            {geoCoords && (
-              <g>
-                {(() => {
-                  const pos = projectCoords(geoCoords.latitude, geoCoords.longitude);
-                  return (
-                    <g transform={`translate(${pos.x}, ${pos.y})`}>
-                      <circle r="14" fill="rgba(56, 189, 248, 0.2)" className="animate-ping" />
-                      <circle r="6" fill="var(--accent-blue)" stroke="#ffffff" strokeWidth="2" />
-                      <text y="-10" textAnchor="middle" fill="var(--accent-blue)" fontSize="10" fontWeight="700">
-                        My Location
-                      </text>
-                    </g>
-                  );
-                })()}
-              </g>
-            )}
-
-            {/* City Weather Pins */}
-            {ALL_DEMO_CITIES.map((cityObj) => {
-              const pos = projectCoords(cityObj.lat, cityObj.lon);
-              const isSelected = cityObj.city.toLowerCase() === selectedCity.toLowerCase();
-              const isHovered = hoveredCity === cityObj.city;
-
-              // Compute layer label
-              let layerText = formatTemperature(cityObj.temp, tempUnit);
-              let badgeColor = '#f97316';
-
-              if (activeLayer === 'rain') {
-                layerText = `${cityObj.rainProbability}%`;
-                badgeColor = '#38bdf8';
-              } else if (activeLayer === 'wind') {
-                layerText = formatWind(cityObj.windSpeed, windUnit);
-                badgeColor = '#06b6d4';
-              } else if (activeLayer === 'clouds') {
-                layerText = `${cityObj.cloudCover || 30}%`;
-                badgeColor = '#94a3b8';
-              } else if (activeLayer === 'aqi') {
-                layerText = `AQI ${cityObj.aqi || 80}`;
-                badgeColor = cityObj.aqi > 150 ? '#ef4444' : cityObj.aqi > 100 ? '#facc15' : '#10b981';
-              } else if (activeLayer === 'alerts') {
-                layerText = cityObj.hasAlert ? 'ALERT' : 'Normal';
-                badgeColor = cityObj.hasAlert ? '#ef4444' : '#10b981';
-              }
-
+            {/* Nearby Regional Weather Stations Markers */}
+            {nearbyStations.filter(s => !s.isCenter).map((station) => {
+              const isSelected = station.city.toLowerCase() === selectedCity.toLowerCase();
               return (
-                <g
-                  key={cityObj.id}
-                  transform={`translate(${pos.x}, ${pos.y})`}
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`${cityObj.name}: ${layerText}`}
-                  onClick={() => onSelectCity(cityObj.city)}
-                  onMouseEnter={() => setHoveredCity(cityObj.city)}
-                  onMouseLeave={() => setHoveredCity(null)}
-                  onFocus={() => setHoveredCity(cityObj.city)}
-                  onBlur={() => setHoveredCity(null)}
-                  style={{ cursor: 'pointer', outline: 'none' }}
+                <Marker
+                  key={station.id}
+                  position={[station.lat, station.lon]}
+                  icon={createMarkerIcon(station.name, station, isSelected)}
+                  eventHandlers={{
+                    click: () => {
+                      onSelectCity(station.name);
+                    }
+                  }}
                 >
-                  {/* Glowing selection ring */}
-                  {isSelected && (
-                    <circle
-                      r="20"
-                      fill="none"
-                      stroke="var(--accent-blue)"
-                      strokeWidth="2"
-                      opacity="0.75"
-                      strokeDasharray="4,2"
-                    />
-                  )}
-
-                  {/* Pin Dot */}
-                  <circle
-                    r={isSelected ? "7" : "5"}
-                    fill={isSelected ? "var(--accent-blue)" : badgeColor}
-                    stroke="#ffffff"
-                    strokeWidth={isSelected ? "2.5" : "1.5"}
-                  />
-
-                  {/* Dynamic Layer Data Bubble */}
-                  <g transform="translate(0, -14)">
-                    <rect
-                      x={-layerText.length * 3.8 - 6}
-                      y="-12"
-                      width={layerText.length * 7.6 + 12}
-                      height="17"
-                      rx="8"
-                      fill={isSelected ? "var(--accent-blue)" : "rgba(15, 23, 42, 0.9)"}
-                      stroke={isSelected ? "#ffffff" : badgeColor}
-                      strokeWidth="1.2"
-                    />
-                    <text
-                      textAnchor="middle"
-                      y="0"
-                      fill={isSelected ? "#ffffff" : "var(--text-primary)"}
-                      fontSize="9.5"
-                      fontWeight="800"
-                    >
-                      {layerText}
-                    </text>
-                  </g>
-
-                  {/* City Name Label */}
-                  <text
-                    y="18"
-                    textAnchor="middle"
-                    fill={isSelected ? "var(--accent-blue)" : "#f1f5f9"}
-                    fontSize={isSelected ? "11.5" : "10"}
-                    fontWeight={isSelected ? "800" : "600"}
-                    style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}
-                  >
-                    {cityObj.name}
-                  </text>
-                </g>
+                  <Popup>
+                    <div style={{ padding: '0.4rem', color: 'var(--text-primary)', minWidth: '160px' }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.25rem' }}>{station.name}</div>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                        {formatTemperature(station.temp, tempUnit)} • {station.condition}
+                      </div>
+                      <button
+                        onClick={() => onSelectCity(station.name)}
+                        className="btn-primary"
+                        style={{ marginTop: '0.5rem', width: '100%', padding: '0.3rem', fontSize: '0.75rem' }}
+                      >
+                        Set as Dashboard Location
+                      </button>
+                    </div>
+                  </Popup>
+                </Marker>
               );
             })}
-          </svg>
+          </MapContainer>
 
-          {/* Active Synced Location Overlay Card */}
+          {/* Floating Live Telemetry Overlay Card */}
           <div style={{
             position: 'absolute',
-            bottom: '12px',
-            left: '12px',
-            background: 'rgba(15, 23, 42, 0.85)',
-            backdropFilter: 'blur(10px)',
+            bottom: '14px',
+            left: '14px',
+            zIndex: 400,
+            background: 'rgba(11, 15, 25, 0.88)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
             border: '1px solid rgba(56, 189, 248, 0.3)',
             borderRadius: 'var(--radius-md)',
             padding: '0.65rem 1rem',
             display: 'flex',
             alignItems: 'center',
             gap: '0.75rem',
-            color: '#f8fafc',
-            fontSize: '0.85rem'
+            boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
           }}>
             <div style={{
               width: '10px',
               height: '10px',
               borderRadius: '50%',
               background: 'var(--accent-blue)',
-              boxShadow: '0 0 8px var(--accent-blue)'
+              boxShadow: '0 0 10px var(--accent-blue)'
             }} />
-            <div>
-              <strong>Map Focus:</strong> {currentSelectedCityData.name} ({currentSelectedCityData.country})
-              <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
-                {formatTemperature(currentSelectedCityData.temp, tempUnit)} • {currentSelectedCityData.condition}
+            <div style={{ fontSize: '0.82rem', color: '#f8fafc' }}>
+              <strong>Map Focus:</strong> {cityMock.name} ({cityMock.country || 'India'})
+              <span style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>
+                {formatTemperature(cityMock.temp, tempUnit)} • {cityMock.condition} • Humidity {cityMock.humidity}% • AQI {cityMock.aqi || 85}
               </span>
             </div>
           </div>
         </div>
       )}
+
+      {/* Nearby Quick Station Chips (Requirement #11 & #18) */}
+      <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--surface-border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 750, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+            Nearby Regional Stations & Telemetry ({nearbyStations.length})
+          </span>
+          {loadingNearby && (
+            <span style={{ fontSize: '0.72rem', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <RefreshCw size={10} className="animate-spin" /> Updating station feeds...
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
+          {nearbyStations.map((st) => {
+            const isSelected = st.city.toLowerCase() === selectedCity.toLowerCase() || (st.isCenter && selectedCity.toLowerCase() === cityMock.city.toLowerCase());
+            return (
+              <button
+                key={st.id}
+                onClick={() => onSelectCity(st.name)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '0.78rem',
+                  fontWeight: isSelected ? 750 : 500,
+                  background: isSelected ? 'var(--accent-glow)' : 'var(--surface-color)',
+                  border: isSelected ? '1px solid var(--accent-blue)' : '1px solid var(--surface-border)',
+                  color: isSelected ? 'var(--accent-blue)' : 'var(--text-primary)',
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                  transition: 'all var(--transition-fast)'
+                }}
+              >
+                <MapPin size={12} style={{ color: isSelected ? 'var(--accent-blue)' : 'var(--text-muted)' }} />
+                <span>{st.name}</span>
+                <span style={{ fontWeight: 700 }}>{formatTemperature(st.temp, tempUnit)}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
+

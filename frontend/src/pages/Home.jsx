@@ -82,36 +82,51 @@ export function Home({ weatherState, onNavigateChat, onNavigateMap, onAskAI, t =
       ) : error ? (
         <ErrorMessage message={error} onRetry={retry} />
       ) : weather ? (
-        <>
-          <div className="dashboard-grid">
-            {/* Main Left Dashboard Column: Current Weather -> Important Details -> Hourly -> Graph */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <WeatherHero 
-                weather={weather} 
-                tempUnit={tempUnit} 
-                windUnit={windUnit} 
-                onRefresh={retry}
-                isRefreshing={loading}
-                t={t} 
-              />
-              <WeatherDetails current={weather.current} />
-              <HourlyForecast hourly={forecast?.hourly} tempUnit={tempUnit} />
-              <WeatherChart hourly={forecast?.hourly} tempUnit={tempUnit} />
-            </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+          {/* Step 2: Current Weather */}
+          <section>
+            <WeatherHero 
+              weather={weather} 
+              tempUnit={tempUnit} 
+              windUnit={windUnit} 
+              onRefresh={retry}
+              isRefreshing={loading}
+              t={t} 
+            />
+          </section>
 
-            {/* Right Sidebar Column: Weather Alerts -> Daily Forecast -> AI Weather Summary -> Suggested Questions */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Step 3: Important Weather Details */}
+          <section>
+            <WeatherDetails current={weather.current} />
+          </section>
+
+          {/* Step 4: Hourly Forecast */}
+          <section>
+            <HourlyForecast hourly={forecast?.hourly} tempUnit={tempUnit} />
+          </section>
+
+          {/* Step 5: 24-Hour Temperature Trend (Full Width) */}
+          <section>
+            <WeatherChart hourly={forecast?.hourly} tempUnit={tempUnit} />
+          </section>
+
+          {/* Step 6: 7-Day Forecast (Full Width) */}
+          <section>
+            <DailyForecast daily={forecast?.daily} tempUnit={tempUnit} />
+          </section>
+
+          {/* Step 7: Weather Alert + AI Weather Summary (Side-by-side on desktop) */}
+          <section className="alerts-summary-grid">
+            <div>
               <AlertDetails alerts={alerts} city={weather.location.city} t={t} />
-              <DailyForecast daily={forecast?.daily} tempUnit={tempUnit} />
-              <WeatherSummary weather={weather} onOpenChat={() => onNavigateChat()} />
-              <div className="glass-card" style={{ padding: '1.25rem' }}>
-                <SuggestedQuestions onSelectQuestion={onAskAI} weatherAware={true} />
-              </div>
             </div>
-          </div>
+            <div>
+              <WeatherSummary weather={weather} onOpenChat={() => onNavigateChat()} />
+            </div>
+          </section>
 
-          {/* Integrated Interactive Weather Map Section (A18) */}
-          <section style={{ marginTop: '1rem' }}>
+          {/* Interactive Weather Map Section (A18) */}
+          <section style={{ marginTop: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Geospatial Weather Radar & Map</h2>
@@ -145,7 +160,12 @@ export function Home({ weatherState, onNavigateChat, onNavigateMap, onAskAI, t =
           <section style={{ marginTop: '0.5rem' }}>
             <ClimateSummary climate={climate} tempUnit={tempUnit} t={t} />
           </section>
-        </>
+
+          {/* Suggested Questions (Compact chips) */}
+          <section className="glass-card" style={{ padding: '1rem 1.25rem' }}>
+            <SuggestedQuestions onSelectQuestion={onAskAI} weatherAware={true} />
+          </section>
+        </div>
       ) : null}
     </div>
   );

@@ -57,6 +57,19 @@
   }
 }
 
+.alerts-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+@media (min-width: 1024px) {
+  .alerts-summary-grid {
+    grid-template-columns: 1.15fr 0.85fr;
+  }
+}
+
 /* Badges */
 .badge {
   display: inline-flex;

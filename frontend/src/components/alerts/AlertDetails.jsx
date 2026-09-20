@@ -6,17 +6,18 @@ export function AlertDetails({ alerts = [], city = "" }) {
   if (!alerts || alerts.length === 0) {
     return (
       <div className="glass-card" style={{
-        padding: '2rem',
+        padding: '1.75rem 1.25rem',
         textAlign: 'center',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '0.75rem',
-        margin: '1rem 0'
+        gap: '0.65rem',
+        height: '100%',
+        justifyContent: 'center'
       }}>
-        <CheckCircle2 size={36} style={{ color: '#10b981' }} />
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>No Active Weather Alerts</h3>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', maxWidth: '420px' }}>
+        <CheckCircle2 size={32} style={{ color: '#10b981' }} />
+        <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>No Active Weather Alerts</h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', maxWidth: '380px', margin: 0 }}>
           There are currently no official weather warnings or alerts for {city || 'this location'}.
         </p>
       </div>

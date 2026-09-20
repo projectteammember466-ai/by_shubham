@@ -1,142 +1,136 @@
 import React, { useState } from 'react';
 import { AlertBadge } from './AlertBadge';
-import { ShieldCheck, Sparkles, MapPin, Calendar, ChevronDown, ChevronUp, AlertOctagon, HelpCircle, ArrowRight } from 'lucide-react';
+import { MapPin, Calendar, ChevronDown, ChevronUp, ShieldCheck, Sparkles } from 'lucide-react';
 
-export function AlertCard({ alert, t = (k) => k }) {
-  const [expanded, setExpanded] = useState(true);
+export function AlertCard({ alert, t = (k, d) => d || k }) {
+  const [showDetails, setShowDetails] = useState(false);
 
   if (!alert) return null;
 
+  const isHighSeverity = alert.severity === 'EXTREME' || alert.severity === 'SEVERE';
+  const borderColor = isHighSeverity ? 'rgba(239, 68, 68, 0.4)' : 'rgba(234, 179, 8, 0.35)';
+  const bgColor = isHighSeverity ? 'rgba(239, 68, 68, 0.08)' : 'rgba(234, 179, 8, 0.06)';
+
   return (
-    <div className="glass-card" style={{
-      padding: '1.25rem',
-      borderColor: alert.severity === 'EXTREME' || alert.severity === 'SEVERE' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(234, 179, 8, 0.3)',
-      background: alert.severity === 'EXTREME' || alert.severity === 'SEVERE' ? 'rgba(239, 68, 68, 0.05)' : 'rgba(234, 179, 8, 0.05)',
-      margin: '1rem 0'
-    }}>
+    <div
+      className="glass-card"
+      style={{
+        padding: '1.25rem',
+        borderColor,
+        background: bgColor,
+        marginBottom: '1rem',
+        borderRadius: 'var(--radius-lg)'
+      }}
+    >
       {/* Alert Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <AlertBadge severity={alert.severity} />
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              {alert.title}
-            </h3>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.78rem', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <MapPin size={13} style={{ color: 'var(--accent-blue)' }} /> {alert.affectedArea}
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <Calendar size={13} /> {alert.validFrom} to {alert.validUntil}
-            </span>
-          </div>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+          <AlertBadge severity={alert.severity} />
+          <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+            {alert.title}
+          </h3>
         </div>
 
         <button
-          onClick={() => setExpanded(!expanded)}
-          style={{ padding: '0.35rem', color: 'var(--text-muted)' }}
-          aria-label={expanded ? "Collapse details" : "Expand details"}
+          onClick={() => setShowDetails(!showDetails)}
+          className="btn-secondary"
+          style={{
+            padding: '0.3rem 0.65rem',
+            fontSize: '0.78rem',
+            gap: '0.3rem',
+            borderRadius: 'var(--radius-full)'
+          }}
+          aria-expanded={showDetails}
+          aria-label={showDetails ? "Hide details" : "View details"}
         >
-          {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          <span>{showDetails ? 'Hide Details' : 'View Details'}</span>
+          {showDetails ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
       </div>
 
-      {expanded && (
-        <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Section 1: OFFICIAL WARNING (Authority Attributed) */}
-          <div style={{
-            background: 'var(--surface-card)',
-            padding: '1.1rem',
-            borderRadius: 'var(--radius-md)',
-            borderLeft: '4px solid #ef4444',
-            border: '1px solid rgba(239, 68, 68, 0.25)',
-            borderLeftWidth: '5px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.4rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', fontWeight: 900, color: '#ef4444', letterSpacing: '0.05em' }}>
-                <ShieldCheck size={16} /> OFFICIAL GOVERNMENT / MET AUTHORITY WARNING
+      {/* Meta Location & Validity Row */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1rem',
+        fontSize: '0.78rem',
+        color: 'var(--text-secondary)',
+        flexWrap: 'wrap',
+        marginBottom: '0.75rem'
+      }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+          <MapPin size={13} style={{ color: 'var(--accent-blue)' }} />
+          <span>{alert.affectedArea}</span>
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+          <Calendar size={13} />
+          <span>{alert.validFrom} to {alert.validUntil}</span>
+        </span>
+      </div>
+
+      {/* Primary Alert Description */}
+      <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.5, marginBottom: '0.75rem' }}>
+        {alert.officialWarning?.description || alert.description}
+      </p>
+
+      {/* Immediate Safety Advice */}
+      {(alert.aiExplanation?.recommendedAction || alert.safetyTip) && (
+        <div style={{
+          background: 'rgba(56, 189, 248, 0.08)',
+          border: '1px solid rgba(56, 189, 248, 0.2)',
+          padding: '0.6rem 0.85rem',
+          borderRadius: 'var(--radius-sm)',
+          fontSize: '0.84rem',
+          color: 'var(--text-primary)',
+          marginBottom: '0.75rem'
+        }}>
+          <strong style={{ color: 'var(--accent-blue)' }}>💡 Safety Advice:</strong>{' '}
+          {alert.aiExplanation?.recommendedAction || alert.safetyTip}
+        </div>
+      )}
+
+      {/* Official Source Attribution */}
+      <div style={{
+        fontSize: '0.75rem',
+        color: 'var(--text-muted)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.35rem'
+      }}>
+        <ShieldCheck size={14} style={{ color: isHighSeverity ? '#ef4444' : '#eab308' }} />
+        <span>Source: <strong>{alert.officialWarning?.source || 'IMD / Meteorological Authority'}</strong></span>
+        {alert.officialWarning?.sourceType && (
+          <span>({alert.officialWarning.sourceType})</span>
+        )}
+      </div>
+
+      {/* Expandable Technical & AI Context Details */}
+      {showDetails && (
+        <div style={{
+          marginTop: '1rem',
+          paddingTop: '0.85rem',
+          borderTop: '1px solid var(--surface-border)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.6rem'
+        }}>
+          {alert.aiExplanation?.summary && (
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-blue)', marginBottom: '0.25rem' }}>
+                <Sparkles size={13} />
+                <span>AI Meteorological Assessment</span>
               </div>
-              <span className="badge badge-info" style={{ fontSize: '0.65rem' }}>Verified Feed</span>
-            </div>
-
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.65rem' }}>
-              Source: <strong>{alert.officialWarning?.source}</strong> ({alert.officialWarning?.sourceType})
-            </div>
-
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.5, fontWeight: 500 }}>
-              {alert.officialWarning?.description}
-            </p>
-          </div>
-
-          {/* Section 2: Expected Conditions & Potential Impacts (A13) */}
-          {(alert.expectedConditions || (alert.potentialImpacts && alert.potentialImpacts.length > 0)) && (
-            <div style={{
-              background: 'var(--surface-color)',
-              padding: '1rem',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--surface-border)'
-            }}>
-              {alert.expectedConditions && (
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '0.25rem' }}>
-                    ⚡ {t('expectedConditions', 'Expected Conditions')}:
-                  </span>
-                  <p style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                    {alert.expectedConditions}
-                  </p>
-                </div>
-              )}
-
-              {alert.potentialImpacts && alert.potentialImpacts.length > 0 && (
-                <div>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '0.35rem' }}>
-                    ⚠️ {t('potentialImpacts', 'Potential Impacts')}:
-                  </span>
-                  <ul style={{ paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    {alert.potentialImpacts.map((impact, i) => (
-                      <li key={i}>{impact}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                {alert.aiExplanation.summary}
+              </p>
             </div>
           )}
 
-          {/* Section 3: AI EXPLANATION & GUIDANCE */}
-          <div style={{
-            background: 'var(--surface-color)',
-            padding: '1.1rem',
-            borderRadius: 'var(--radius-md)',
-            borderLeft: '5px solid var(--accent-blue)',
-            border: '1px solid rgba(56, 189, 248, 0.25)',
-            borderLeftWidth: '5px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', fontWeight: 900, color: 'var(--accent-blue)', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
-              <Sparkles size={16} /> WEATHERGPT AI EXPLANATION & IMPACT ASSESSMENT
-            </div>
-
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '0.65rem' }}>
-              {alert.aiExplanation?.disclaimer}
-            </div>
-
-            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '0.75rem' }}>
-              {alert.aiExplanation?.summary}
+          {alert.aiExplanation?.disclaimer && (
+            <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: 0 }}>
+              {alert.aiExplanation.disclaimer}
             </p>
-
-            {alert.aiExplanation?.recommendedAction && (
-              <div style={{
-                background: 'var(--accent-glow)',
-                padding: '0.65rem 0.85rem',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                color: 'var(--accent-blue)'
-              }}>
-                💡 <strong>{t('recommendedActions', 'Recommended Guidance')}:</strong> {alert.aiExplanation.recommendedAction}
-              </div>
-            )}
-          </div>
+          )}
         </div>
       )}
     </div>

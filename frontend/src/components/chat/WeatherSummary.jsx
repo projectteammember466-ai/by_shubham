@@ -15,14 +15,18 @@ export function WeatherSummary({ weather, onOpenChat }) {
       background: 'radial-gradient(circle at 100% 0%, rgba(99, 102, 241, 0.1) 0%, var(--surface-color) 70%)',
       display: 'flex',
       flexDirection: 'column',
-      gap: '0.75rem'
+      gap: '0.75rem',
+      height: '100%',
+      justifyContent: 'space-between'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent-indigo)' }}>
           <Sparkles size={16} />
           <span>WeatherGPT AI Summary</span>
         </div>
-        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Simulated AI Insight</span>
+        <span className="badge badge-info" style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem' }}>
+          AI-generated summary
+        </span>
       </div>
 
       <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>

@@ -276,11 +276,9 @@ export function Navbar({
             </span>
           )}
 
-          {/* Current City Badge & Geolocation */}
-          <button 
-            onClick={onRequestLocation}
-            title="Click to detect browser location"
-            aria-label={`Current location: ${city || 'Location'}. Click to detect location.`}
+          {/* Current City Indicator Badge */}
+          <div 
+            title={`Current location: ${city || 'Location'}`}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -291,13 +289,12 @@ export function Navbar({
               border: '1px solid var(--surface-border)',
               fontSize: '0.8rem',
               color: 'var(--text-primary)',
-              fontWeight: 600,
-              cursor: 'pointer'
+              fontWeight: 600
             }}
           >
             <MapPin size={14} style={{ color: 'var(--accent-blue)' }} />
             <span>{city ? city.charAt(0).toUpperCase() + city.slice(1) : 'Location'}</span>
-          </button>
+          </div>
 
           {/* Quick Language Toggle (A12) */}
           {setLang && (

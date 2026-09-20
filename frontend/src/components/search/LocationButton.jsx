@@ -23,7 +23,7 @@ export function LocationButton({ onRequestLocation, geoState }) {
       ) : (
         <Navigation size={16} style={{ color: 'var(--accent-blue)' }} />
       )}
-      <span>{isRequesting ? 'Detecting...' : 'Use My Location'}</span>
+      <span>{isRequesting ? 'Locating...' : 'Use My Location'}</span>
     </button>
   );
 }
