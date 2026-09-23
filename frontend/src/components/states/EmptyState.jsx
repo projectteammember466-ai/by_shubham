@@ -1,7 +1,15 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 
-export function EmptyState({ title = "No Results Found", description = "Try searching for another city or checking your filter criteria.", icon: Icon = Search, actionButton }) {
+export function EmptyState({ 
+  title, 
+  description, 
+  icon: Icon = Search, 
+  actionButton,
+  t = (k, f) => f || k 
+}) {
+  const displayTitle = title || t('noResults', 'No Results Found');
+  const displayDesc = description || t('noResultsDesc', 'Try searching for another city or checking your filter criteria.');
   return (
     <div className="glass-card" style={{
       padding: '2.5rem 1.5rem',

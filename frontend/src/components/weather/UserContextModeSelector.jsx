@@ -1,14 +1,30 @@
 import React from 'react';
-import { User, Sprout, Plane, Sun, AlertTriangle } from 'lucide-react';
+import { 
+  User, Sprout, Plane, Sun, AlertTriangle, Car, CalendarCheck, Activity 
+} from 'lucide-react';
+import { CONTEXT_MODES, getContextMode, getContextAdvisory } from '../../data/contextModes';
 
-export function UserContextModeSelector({ userMode, onSelectMode, advice, t = (k) => k }) {
-  const modes = [
-    { id: 'general', label: t('modeGeneral', 'General'), icon: User },
-    { id: 'farmer', label: t('modeFarmer', 'Farmer'), icon: Sprout },
-    { id: 'traveler', label: t('modeTraveler', 'Traveler'), icon: Plane },
-    { id: 'outdoor', label: t('modeOutdoor', 'Outdoor'), icon: Sun },
-    { id: 'emergency', label: t('modeEmergency', 'Emergency'), icon: AlertTriangle }
-  ];
+const MODE_ICONS = {
+  general: User,
+  farmer: Sprout,
+  traveler: Plane,
+  outdoor: Sun,
+  emergency: AlertTriangle,
+  commuter: Car,
+  event_planner: CalendarCheck,
+  fitness: Activity
+};
+
+export function UserContextModeSelector({ 
+  userMode = 'general', 
+  onSelectMode, 
+  advice, 
+  lang = 'en', 
+  t = (k, f) => f || k 
+}) {
+  const currentMode = getContextMode(userMode);
+  const currentAdvisory = getContextAdvisory(userMode, lang) || (advice && advice[userMode]);
+  const currentLabel = currentMode.names[lang] || currentMode.names.en;
 
   return (
     <div style={{ margin: '1rem 0' }}>
@@ -24,9 +40,11 @@ export function UserContextModeSelector({ userMode, onSelectMode, advice, t = (k
           {t('contextModeTitle', 'Context Mode')}:
         </span>
         <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-          {modes.map((m) => {
-            const Icon = m.icon;
+          {CONTEXT_MODES.map((m) => {
+            const Icon = MODE_ICONS[m.id] || User;
             const isSelected = userMode === m.id;
+            const label = m.names[lang] || m.names.en;
+
             return (
               <button
                 key={m.id}
@@ -41,12 +59,13 @@ export function UserContextModeSelector({ userMode, onSelectMode, advice, t = (k
                   fontWeight: isSelected ? 800 : 500,
                   background: isSelected ? 'var(--accent-glow)' : 'var(--surface-card)',
                   color: isSelected ? 'var(--accent-blue)' : 'var(--text-secondary)',
-                  border: isSelected ? '1px solid var(--accent-blue)' : '1px solid var(--surface-border)',
+                  border: isSelected ? '1.5px solid var(--accent-blue)' : '1px solid var(--surface-border)',
+                  cursor: 'pointer',
                   transition: 'all var(--transition-fast)'
                 }}
               >
                 <Icon size={13} />
-                <span>{m.label}</span>
+                <span>{label}</span>
               </button>
             );
           })}
@@ -54,7 +73,7 @@ export function UserContextModeSelector({ userMode, onSelectMode, advice, t = (k
       </div>
 
       {/* Mode Advisory Card */}
-      {advice && advice[userMode] && (
+      {currentAdvisory && (
         <div className="page-fade-in" style={{
           background: userMode === 'emergency' ? 'rgba(239, 68, 68, 0.1)' : 'var(--surface-color)',
           borderLeft: `4px solid ${userMode === 'emergency' ? '#ef4444' : 'var(--accent-blue)'}`,
@@ -62,10 +81,11 @@ export function UserContextModeSelector({ userMode, onSelectMode, advice, t = (k
           borderRadius: 'var(--radius-md)',
           fontSize: '0.85rem',
           color: 'var(--text-primary)',
-          lineHeight: 1.4
+          lineHeight: 1.4,
+          marginTop: '0.5rem'
         }}>
-          <strong>{modes.find(m => m.id === userMode)?.label} Advisory: </strong>
-          {advice[userMode]}
+          <strong>{currentLabel} {t('advisory', 'Advisory')}: </strong>
+          {currentAdvisory}
         </div>
       )}
     </div>

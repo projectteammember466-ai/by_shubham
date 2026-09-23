@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigation, Loader2 } from 'lucide-react';
 
-export function LocationButton({ onRequestLocation, geoState }) {
+export function LocationButton({ onRequestLocation, geoState, t = (k, f) => f || k }) {
   const isRequesting = geoState?.status === 'requesting';
 
   return (
@@ -9,13 +9,14 @@ export function LocationButton({ onRequestLocation, geoState }) {
       onClick={onRequestLocation}
       disabled={isRequesting}
       className="btn-secondary"
-      title="Use my location"
+      title={t('useMyLocation', 'Use My Location')}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
         gap: '0.4rem',
         padding: '0.625rem 1rem',
-        whiteSpace: 'nowrap'
+        whiteSpace: 'nowrap',
+        cursor: isRequesting ? 'not-allowed' : 'pointer'
       }}
     >
       {isRequesting ? (
@@ -23,7 +24,7 @@ export function LocationButton({ onRequestLocation, geoState }) {
       ) : (
         <Navigation size={16} style={{ color: 'var(--accent-blue)' }} />
       )}
-      <span>{isRequesting ? 'Locating...' : 'Use My Location'}</span>
+      <span>{isRequesting ? t('locating', 'Locating...') : t('useMyLocation', 'Use My Location')}</span>
     </button>
   );
 }

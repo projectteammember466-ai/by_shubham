@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { TrendingUp, Table } from 'lucide-react';
 import { formatTemperature } from '../../utils/formatTemperature';
+import { localizeCondition } from '../../data/translations';
 
-export function WeatherChart({ hourly = [], tempUnit }) {
+export function WeatherChart({ hourly = [], tempUnit, lang = 'en', t = (k, f) => f || k }) {
   const [showTable, setShowTable] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState(null);
 
@@ -33,16 +34,18 @@ export function WeatherChart({ hourly = [], tempUnit }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <TrendingUp size={18} style={{ color: 'var(--accent-blue)' }} />
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 700 }}>24-Hour Temperature Trend Graph</h2>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 700 }}>
+            {t('temperatureTrend', '24-Hour Temperature Trend Graph')}
+          </h2>
         </div>
         <button
           onClick={() => setShowTable(!showTable)}
           className="btn-secondary"
-          style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
-          aria-label={showTable ? "Switch to graph view" : "Switch to accessible data table view"}
+          style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem', cursor: 'pointer' }}
+          aria-label={showTable ? t('viewGraph', 'View Graph') : t('accessibleTable', 'Accessible Table')}
         >
           <Table size={14} />
-          <span>{showTable ? 'View Graph' : 'Accessible Table'}</span>
+          <span>{showTable ? t('viewGraph', 'View Graph') : t('accessibleTable', 'Accessible Table')}</span>
         </button>
       </div>
 
@@ -54,17 +57,17 @@ export function WeatherChart({ hourly = [], tempUnit }) {
           >
             <thead>
               <tr style={{ borderBottom: '1px solid var(--surface-border)', color: 'var(--text-muted)' }}>
-                <th style={{ padding: '0.6rem', textAlign: 'left' }}>Time</th>
-                <th style={{ padding: '0.6rem', textAlign: 'left' }}>Condition</th>
-                <th style={{ padding: '0.6rem', textAlign: 'right' }}>Temperature</th>
-                <th style={{ padding: '0.6rem', textAlign: 'right' }}>Rain Chance</th>
+                <th style={{ padding: '0.6rem', textAlign: 'left' }}>{t('time', 'Time')}</th>
+                <th style={{ padding: '0.6rem', textAlign: 'left' }}>{t('condition', 'Condition')}</th>
+                <th style={{ padding: '0.6rem', textAlign: 'right' }}>{t('temperature', 'Temperature')}</th>
+                <th style={{ padding: '0.6rem', textAlign: 'right' }}>{t('rainChance', 'Rain Chance')}</th>
               </tr>
             </thead>
             <tbody>
               {hourly.map((h) => (
                 <tr key={h.id} style={{ borderBottom: '1px solid var(--surface-border)' }}>
-                  <td style={{ padding: '0.6rem', fontWeight: 600 }}>{h.time}</td>
-                  <td style={{ padding: '0.6rem', color: 'var(--text-secondary)' }}>{h.condition}</td>
+                  <td style={{ padding: '0.6rem', fontWeight: 600 }}>{h.time === 'Now' ? t('now', 'Now') : h.time}</td>
+                  <td style={{ padding: '0.6rem', color: 'var(--text-secondary)' }}>{localizeCondition(h.condition, lang)}</td>
                   <td style={{ padding: '0.6rem', textAlign: 'right', fontWeight: 700 }}>{formatTemperature(h.temp, tempUnit)}</td>
                   <td style={{ padding: '0.6rem', textAlign: 'right', color: '#38bdf8' }}>{h.rainProbability}%</td>
                 </tr>
@@ -80,7 +83,7 @@ export function WeatherChart({ hourly = [], tempUnit }) {
             role="img"
             aria-label="Interactive 24-hour temperature trend graph"
           >
-            <title>24-Hour Temperature Trend</title>
+            <title>{t('temperatureTrend', '24-Hour Temperature Trend Graph')}</title>
             <desc>Temperature curve showing temperatures from {formatTemperature(minTemp + 2, tempUnit)} to {formatTemperature(maxTemp - 2, tempUnit)} throughout the day.</desc>
 
             {/* Grid Lines */}
@@ -112,67 +115,43 @@ export function WeatherChart({ hourly = [], tempUnit }) {
             />
 
             {/* Data Points */}
-            {points.map((pt, idx) => {
-              const isSelected = selectedPoint?.id === pt.id;
-              return (
-                <g 
-                  key={idx} 
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`${pt.time}: ${formatTemperature(pt.temp, tempUnit)}, ${pt.condition}`}
-                  onMouseEnter={() => setSelectedPoint(pt)}
+            {points.map((p, idx) => (
+              <g key={idx} tabIndex={0} role="button" aria-label={`${p.time}: ${formatTemperature(p.temp, tempUnit)}`}>
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r={selectedPoint?.id === p.id ? 6 : 4}
+                  fill="var(--surface-card)"
+                  stroke="var(--accent-blue)"
+                  strokeWidth="2.5"
+                  style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+                  onMouseEnter={() => setSelectedPoint(p)}
                   onMouseLeave={() => setSelectedPoint(null)}
-                  onFocus={() => setSelectedPoint(pt)}
-                  onBlur={() => setSelectedPoint(null)}
-                  style={{ cursor: 'pointer', outline: 'none' }}
+                  onClick={() => setSelectedPoint(p)}
+                />
+                <text
+                  x={p.x}
+                  y={height - 12}
+                  textAnchor="middle"
+                  fill="var(--text-muted)"
+                  fontSize="11"
+                  fontWeight="600"
                 >
-                  <circle
-                    cx={pt.x}
-                    cy={pt.y}
-                    r={isSelected ? 6 : 4}
-                    fill={isSelected ? "var(--accent-blue)" : "var(--surface-card)"}
-                    stroke="var(--accent-blue)"
-                    strokeWidth={isSelected ? 3 : 2}
-                    style={{ transition: 'all 0.15s ease' }}
-                  />
-                  {/* Temperature text */}
-                  <text
-                    x={pt.x}
-                    y={pt.y - 12}
-                    textAnchor="middle"
-                    fill="var(--text-primary)"
-                    fontSize={isSelected ? "12" : "11"}
-                    fontWeight={isSelected ? "800" : "600"}
-                  >
-                    {formatTemperature(pt.temp, tempUnit)}
-                  </text>
-                  {/* Time label */}
-                  <text
-                    x={pt.x}
-                    y={height - 12}
-                    textAnchor="middle"
-                    fill={isSelected ? "var(--text-primary)" : "var(--text-muted)"}
-                    fontSize="10"
-                    fontWeight={isSelected ? "700" : "500"}
-                  >
-                    {pt.time}
-                  </text>
-                </g>
-              );
-            })}
+                  {p.time === 'Now' ? t('now', 'Now') : p.time}
+                </text>
+                <text
+                  x={p.x}
+                  y={p.y - 10}
+                  textAnchor="middle"
+                  fill="var(--text-primary)"
+                  fontSize="12"
+                  fontWeight="700"
+                >
+                  {formatTemperature(p.temp, tempUnit)}
+                </text>
+              </g>
+            ))}
           </svg>
-
-          {selectedPoint && (
-            <div style={{
-              textAlign: 'center',
-              marginTop: '0.5rem',
-              fontSize: '0.82rem',
-              color: 'var(--accent-blue)',
-              fontWeight: 600
-            }}>
-              Selected: {selectedPoint.time} • {formatTemperature(selectedPoint.temp, tempUnit)} • {selectedPoint.condition} (Rain: {selectedPoint.rainProbability}%)
-            </div>
-          )}
         </div>
       )}
     </div>

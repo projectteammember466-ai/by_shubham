@@ -3,7 +3,7 @@ import { Search, X, Loader2 } from 'lucide-react';
 import { SearchSuggestions } from './SearchSuggestions';
 import { LocationButton } from './LocationButton';
 
-export function SearchBar({ onSearchCity, onAskAI, onRequestLocation, geoState, searchHistory, isSearching }) {
+export function SearchBar({ onSearchCity, onAskAI, onRequestLocation, geoState, searchHistory, isSearching, t = (k, f) => f || k }) {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
@@ -33,7 +33,7 @@ export function SearchBar({ onSearchCity, onAskAI, onRequestLocation, geoState, 
     if (!cleanQuery) return;
 
     const lower = cleanQuery.toLowerCase();
-    if (lower.includes('rain') || lower.includes('temperature') || lower.includes('weather in') || lower.includes('will it') || lower.includes('how is')) {
+    if (lower.includes('rain') || lower.includes('temperature') || lower.includes('weather in') || lower.includes('will it') || lower.includes('how is') || lower.includes('baarish') || lower.includes('taapmaan') || lower.includes('kya')) {
       if (onAskAI) onAskAI(cleanQuery);
     } else {
       if (onSearchCity) onSearchCity(cleanQuery);
@@ -76,14 +76,14 @@ export function SearchBar({ onSearchCity, onAskAI, onRequestLocation, geoState, 
             role="combobox"
             aria-expanded={isOpen}
             aria-autocomplete="list"
-            aria-label="Search city or ask weather questions"
+            aria-label={t('searchPlaceholder', 'Search city or ask about weather...')}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
               setIsOpen(true);
             }}
             onFocus={() => setIsOpen(true)}
-            placeholder="Search city or ask about weather..."
+            placeholder={t('searchPlaceholder', 'Search city or ask about weather...')}
             style={{
               width: '100%',
               padding: '0.75rem 2.5rem 0.75rem 2.75rem',
@@ -102,14 +102,17 @@ export function SearchBar({ onSearchCity, onAskAI, onRequestLocation, geoState, 
                 setQuery('');
                 setIsOpen(false);
               }}
-              aria-label="Clear search input"
+              aria-label={t('clearSearch', 'Clear search input')}
               style={{
                 position: 'absolute',
                 right: '0.85rem',
                 color: 'var(--text-muted)',
                 padding: '0.2rem',
                 display: 'flex',
-                alignItems: 'center'
+                alignItems: 'center',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer'
               }}
             >
               <X size={16} />
@@ -123,10 +126,10 @@ export function SearchBar({ onSearchCity, onAskAI, onRequestLocation, geoState, 
           style={{ whiteSpace: 'nowrap' }}
           disabled={!query.trim()}
         >
-          <span>Search</span>
+          <span>{t('search', 'Search')}</span>
         </button>
 
-        <LocationButton onRequestLocation={onRequestLocation} geoState={geoState} />
+        <LocationButton onRequestLocation={onRequestLocation} geoState={geoState} t={t} />
       </form>
 
       {isOpen && (
@@ -136,6 +139,7 @@ export function SearchBar({ onSearchCity, onAskAI, onRequestLocation, geoState, 
           onSelectQuery={handleSelectQuery}
           searchHistory={searchHistory}
           onClose={() => setIsOpen(false)}
+          t={t}
         />
       )}
     </div>

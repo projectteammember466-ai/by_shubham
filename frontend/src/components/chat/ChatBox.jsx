@@ -1,28 +1,51 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, Loader2, RefreshCw, AlertCircle, RotateCw, Globe } from 'lucide-react';
+import { Send, Sparkles, Loader2, RefreshCw, AlertCircle, RotateCw, Globe, Compass, Check } from 'lucide-react';
 import { ChatMessage } from './ChatMessage';
 import { SuggestedQuestions } from './SuggestedQuestions';
 import { VoiceInput } from './VoiceInput';
 import { postChatMessage } from '../../services/api';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
+import { useSavedLocations } from '../../hooks/useSavedLocations';
 import { extractQueryUnderstanding } from '../../data/chatData';
 import { SUPPORTED_LANGUAGES } from '../../data/translations';
+import { CONTEXT_MODES, getContextMode } from '../../data/contextModes';
 
-export function ChatBox({ weatherData, initialMessage, lang = 'en', setLang, t = (k) => k }) {
+export function ChatBox({ 
+  weatherData, 
+  initialMessage, 
+  lang = 'en', 
+  setLang, 
+  userMode = 'general',
+  setUserMode,
+  t = (k, f) => f || k 
+}) {
+  const currentModeObj = getContextMode(userMode);
+  const currentModeName = currentModeObj.names[lang] || currentModeObj.names.en;
+  const { savedLocations } = useSavedLocations();
+
   const [messages, setMessages] = useLocalStorage('weathergpt_chat_history', [
     {
       id: 'msg-welcome',
       sender: 'assistant',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      text: `Hello! I'm WeatherGPT, your AI Weather Assistant. Ask me anything about the weather in ${weatherData?.location?.city || 'Jodhpur'} or any city worldwide! You can ask in English, Hindi, or Hinglish.`,
+      text: lang === 'hi'
+        ? `नमस्ते! मैं WeatherGPT हूँ, आपका AI मौसम सहायक। मुझसे ${weatherData?.location?.city || 'जोधपुर'} या दुनिया के किसी भी शहर के मौसम के बारे में पूछें।`
+        : lang === 'hinglish'
+        ? `Hello! Main WeatherGPT hoon, aapka AI Weather Assistant. ${weatherData?.location?.city || 'Jodhpur'} ya kisi bhi city ke mausam ke baare mein poochhein!`
+        : `Hello! I'm WeatherGPT, your AI Weather Assistant. Ask me anything about the weather in ${weatherData?.location?.city || 'Jodhpur'} or any city worldwide!`,
       richContent: {
         city: weatherData?.location?.city || 'Jodhpur',
         temp: `${weatherData?.current?.temperature || 30}°C`,
         condition: weatherData?.current?.condition || 'Sunny',
         rainProbability: `${weatherData?.current?.rainProbability || 10}%`,
-        tip: "Ask me 'Will it rain today?' or 'Kal Jodhpur mein baarish hogi?'",
-        sourcesUsed: ["Current Telemetry", "Deterministic Forecast"],
-        aiExplanationLabel: "WeatherGPT AI Synthesis (Mock Baseline)"
+        contextLabel: currentModeName,
+        tip: lang === 'hi' 
+          ? "पूछें 'क्या आज बारिश होगी?' या 'जोधपुर का तापमान क्या है?'" 
+          : lang === 'hinglish' 
+          ? "Poochhein 'Kal Jodhpur mein baarish hogi?' ya 'What's the temperature today?'" 
+          : "Ask me 'Will it rain today?' or 'What's the temperature in Jodhpur?'",
+        sourcesUsed: ["Current Telemetry", "Deterministic Forecast Grid"],
+        aiExplanationLabel: "WeatherGPT AI Synthesis"
       }
     }
   ]);
@@ -32,7 +55,8 @@ export function ChatBox({ weatherData, initialMessage, lang = 'en', setLang, t =
   const [priorContext, setPriorContext] = useState({
     location: weatherData?.location?.city || 'Jodhpur',
     time: 'Today',
-    intent: 'CURRENT_WEATHER'
+    intent: 'CURRENT_WEATHER',
+    userMode: userMode
   });
   const [lastFailedQuery, setLastFailedQuery] = useState(null);
   const [error, setError] = useState('');
@@ -45,6 +69,15 @@ export function ChatBox({ weatherData, initialMessage, lang = 'en', setLang, t =
   useEffect(() => {
     scrollToBottom();
   }, [messages, isTyping]);
+
+  useEffect(() => {
+    if (weatherData?.location?.city) {
+      setPriorContext(prev => ({
+        ...prev,
+        location: weatherData.location.city
+      }));
+    }
+  }, [weatherData?.location?.city]);
 
   useEffect(() => {
     if (initialMessage) {
@@ -61,11 +94,14 @@ export function ChatBox({ weatherData, initialMessage, lang = 'en', setLang, t =
 
     // Extract understanding for user message tracking
     const understanding = extractQueryUnderstanding(query, priorContext);
-    setPriorContext({
+    const updatedContext = {
       location: understanding.location || priorContext.location,
       time: understanding.time || priorContext.time,
-      intent: understanding.intent || priorContext.intent
-    });
+      intent: understanding.intent || priorContext.intent,
+      userMode: userMode,
+      savedLocations: savedLocations
+    };
+    setPriorContext(updatedContext);
 
     const userMsg = {
       id: `msg-user-${Date.now()}`,
@@ -80,13 +116,13 @@ export function ChatBox({ weatherData, initialMessage, lang = 'en', setLang, t =
 
     try {
       if (query.toLowerCase() === 'error' || query.toLowerCase() === 'fail') {
-        throw new Error("Simulated AI service timeout. Please try again.");
+        throw new Error(t('errorGeneric', 'Simulated AI service timeout. Please try again.'));
       }
-      const response = await postChatMessage(query, weatherData, lang, priorContext);
+      const response = await postChatMessage(query, weatherData, lang, updatedContext);
       setMessages((prev) => [...prev, response]);
     } catch (err) {
       console.error("Chat error:", err);
-      setError(err.message || "Failed to generate AI weather response. Please try again.");
+      setError(err.message || t('errorGeneric', 'Failed to generate AI weather response. Please try again.'));
       setLastFailedQuery(query);
     } finally {
       setIsTyping(false);
@@ -110,7 +146,8 @@ export function ChatBox({ weatherData, initialMessage, lang = 'en', setLang, t =
     setPriorContext({
       location: weatherData?.location?.city || 'Jodhpur',
       time: 'Today',
-      intent: 'CURRENT_WEATHER'
+      intent: 'CURRENT_WEATHER',
+      userMode: userMode
     });
   };
 
@@ -119,10 +156,9 @@ export function ChatBox({ weatherData, initialMessage, lang = 'en', setLang, t =
       display: 'flex',
       flexDirection: 'column',
       height: 'calc(100vh - 12rem)',
-      minHeight: '560px',
+      minHeight: '600px',
       padding: '1.25rem',
-      maxWidth: '850px',
-      margin: '0 auto'
+      width: '100%'
     }}>
       {/* Header */}
       <div style={{
@@ -137,23 +173,30 @@ export function ChatBox({ weatherData, initialMessage, lang = 'en', setLang, t =
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <div style={{
-            padding: '0.4rem',
+            padding: '0.45rem',
             borderRadius: 'var(--radius-sm)',
             background: 'var(--accent-glow)',
-            color: 'var(--accent-blue)'
+            color: 'var(--accent-blue)',
+            display: 'flex',
+            alignItems: 'center'
           }}>
-            <Sparkles size={18} />
+            <Sparkles size={20} />
           </div>
           <div>
-            <h2 style={{ fontSize: '1.05rem', fontWeight: 800 }}>WeatherGPT AI Assistant</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 800 }}>{t('weatherGPTAI', 'WeatherGPT AI')}</h2>
+              <span className="badge badge-info" style={{ fontSize: '0.62rem', padding: '0.1rem 0.35rem' }}>
+                {t('aiAssistant', 'AI Assistant')}
+              </span>
+            </div>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-              Context: {weatherData?.location?.city || 'Global'} • Temporal focus: {priorContext.time}
+              {t('location', 'Location')}: {weatherData?.location?.city || 'Global'} • {t('perspective', 'Perspective')}: <strong style={{ color: 'var(--accent-blue)' }}>{currentModeName}</strong>
             </span>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {/* Quick Language Selector (A12) */}
+          {/* Quick Language Selector */}
           {setLang && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'var(--surface-color)', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--surface-border)' }}>
               <Globe size={13} style={{ color: 'var(--accent-blue)' }} />
@@ -168,7 +211,7 @@ export function ChatBox({ weatherData, initialMessage, lang = 'en', setLang, t =
                   fontWeight: 600,
                   cursor: 'pointer'
                 }}
-                aria-label="Select chat language"
+                aria-label={t('selectLanguage', 'Select chat language')}
               >
                 {SUPPORTED_LANGUAGES.map(l => (
                   <option key={l.id} value={l.id} style={{ background: 'var(--surface-card)', color: 'var(--text-primary)' }}>
@@ -190,11 +233,12 @@ export function ChatBox({ weatherData, initialMessage, lang = 'en', setLang, t =
               padding: '0.35rem 0.65rem',
               borderRadius: 'var(--radius-sm)',
               border: '1px solid var(--surface-border)',
-              background: 'var(--surface-color)'
+              background: 'var(--surface-color)',
+              cursor: 'pointer'
             }}
-            title="Clear Conversation History"
+            title={t('clearChat', 'Clear Conversation History')}
           >
-            <RefreshCw size={12} /> Clear Chat
+            <RefreshCw size={12} /> {t('clearChat', 'Clear Chat')}
           </button>
         </div>
       </div>
@@ -213,10 +257,12 @@ export function ChatBox({ weatherData, initialMessage, lang = 'en', setLang, t =
         aria-label="Conversation messages"
       >
         {messages.length === 0 ? (
-          <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--text-muted)', padding: '2rem 1rem' }}>
             <Sparkles size={36} style={{ color: 'var(--accent-blue)', margin: '0 auto 0.75rem auto' }} />
-            <p style={{ fontWeight: 600 }}>Conversation is cleared.</p>
-            <p style={{ fontSize: '0.85rem' }}>Pick a suggested question below or type your question in English or Hindi.</p>
+            <p style={{ fontWeight: 600, fontSize: '0.95rem' }}>{t('conversationCleared', 'Conversation is cleared.')}</p>
+            <p style={{ fontSize: '0.82rem', maxWidth: '420px', margin: '0.35rem auto 0 auto' }}>
+              {t('askSuggestionHint', 'Pick a suggested question below or ask in English, Hindi, or Hinglish.')}
+            </p>
           </div>
         ) : (
           messages.map((msg) => <ChatMessage key={msg.id} message={msg} t={t} />)
@@ -236,7 +282,7 @@ export function ChatBox({ weatherData, initialMessage, lang = 'en', setLang, t =
             alignSelf: 'flex-start'
           }}>
             <Loader2 size={16} className="animate-spin" style={{ color: 'var(--accent-blue)', animation: 'spin 1s linear infinite' }} />
-            <span>Analyzing contextual weather patterns...</span>
+            <span>{t('analyzingPatterns', 'Analyzing contextual weather patterns...')}</span>
           </div>
         )}
 
@@ -270,10 +316,12 @@ export function ChatBox({ weatherData, initialMessage, lang = 'en', setLang, t =
                   color: '#ef4444',
                   background: 'rgba(239, 68, 68, 0.15)',
                   padding: '0.25rem 0.5rem',
-                  borderRadius: 'var(--radius-sm)'
+                  borderRadius: 'var(--radius-sm)',
+                  border: 'none',
+                  cursor: 'pointer'
                 }}
               >
-                <RotateCw size={12} /> Retry
+                <RotateCw size={12} /> {t('retry', 'Retry')}
               </button>
             )}
           </div>
@@ -282,8 +330,14 @@ export function ChatBox({ weatherData, initialMessage, lang = 'en', setLang, t =
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Suggested Questions */}
-      <SuggestedQuestions onSelectQuestion={(q) => handleSendMessage(q)} weatherAware={true} />
+      {/* Context-aware Suggested Questions */}
+      <SuggestedQuestions 
+        onSelectQuestion={(q) => handleSendMessage(q)} 
+        weatherAware={true} 
+        userMode={userMode}
+        lang={lang}
+        t={t}
+      />
 
       {/* Input Composer */}
       <form
@@ -308,7 +362,7 @@ export function ChatBox({ weatherData, initialMessage, lang = 'en', setLang, t =
           onChange={(e) => setInput(e.target.value)}
           placeholder={t('typeQuestion', 'Ask WeatherGPT about rain, temperature, or recommendations...')}
           disabled={isTyping}
-          aria-label="Ask WeatherGPT message input"
+          aria-label={t('typeQuestion', 'Ask WeatherGPT message input')}
           style={{
             flex: 1,
             padding: '0.65rem 1rem',
@@ -324,7 +378,7 @@ export function ChatBox({ weatherData, initialMessage, lang = 'en', setLang, t =
           type="submit"
           disabled={!input.trim() || isTyping}
           className="btn-primary"
-          aria-label="Send message"
+          aria-label={t('send', 'Send')}
           style={{
             padding: '0.65rem 1.1rem',
             opacity: (!input.trim() || isTyping) ? 0.5 : 1,

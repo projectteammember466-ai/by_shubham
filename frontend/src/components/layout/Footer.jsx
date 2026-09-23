@@ -1,7 +1,7 @@
 import React from 'react';
 import { CloudSun, AlertTriangle, ShieldCheck } from 'lucide-react';
 
-export function Footer() {
+export function Footer({ t = (k, f) => f || k, lang = 'en' }) {
   return (
     <footer style={{
       marginTop: 'auto',
@@ -24,7 +24,7 @@ export function Footer() {
               <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '1rem' }}>WeatherGPT</span>
             </div>
             <p style={{ maxWidth: '460px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              AI-Powered Conversational Weather Assistant providing weather intelligence, visual atmospheric dashboards, and smart forecasting.
+              {t('footerDesc', 'AI-Powered Conversational Weather Assistant providing weather intelligence, visual atmospheric dashboards, and smart forecasting.')}
             </p>
           </div>
 
@@ -37,7 +37,8 @@ export function Footer() {
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
               <AlertTriangle size={18} style={{ color: '#facc15', flexShrink: 0, marginTop: '2px' }} />
               <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                <strong style={{ color: 'var(--text-primary)' }}>Important Disclaimer:</strong> WeatherGPT is an AI weather dashboard demonstration project. It is <strong>not</strong> an official disaster-warning or civil protection authority. Always consult official national meteorological services for official weather advisories and emergency directives.
+                <strong style={{ color: 'var(--text-primary)' }}>{t('importantDisclaimer', 'Important Disclaimer')}:</strong>{' '}
+                {t('footerDisclaimerText', 'WeatherGPT is an AI weather dashboard demonstration project. It is not an official disaster-warning or civil protection authority. Always consult official national meteorological services for official weather advisories and emergency directives.')}
               </div>
             </div>
           </div>
@@ -55,15 +56,15 @@ export function Footer() {
           fontSize: '0.78rem'
         }}>
           <div>
-            © {new Date().getFullYear()} WeatherGPT Project • Phase A Frontend Deliverable
+            © {new Date().getFullYear()} WeatherGPT • {t('openMeteoAttribution', 'Open-Meteo & ECMWF ERA5 Telemetry')}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <span>Demo Data Mode</span>
+            <span>{t('liveTelemetry', 'Live Atmospheric Telemetry')}</span>
             <span>•</span>
             <span>React + Vite</span>
             <span>•</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--accent-blue)' }}>
-              <ShieldCheck size={14} /> Trust Architecture
+              <ShieldCheck size={14} /> {t('trustArchitecture', 'Trust Architecture')}
             </span>
           </div>
         </div>

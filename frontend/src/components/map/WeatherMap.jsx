@@ -10,6 +10,7 @@ import { fetchNearbyLocationsWeather, fetchWeatherByCoords } from '../../service
 import { formatTemperature } from '../../utils/formatTemperature';
 import { formatWind } from '../../utils/formatWind';
 import { MapLayerSelector } from './MapLayerSelector';
+import { localizeCondition } from '../../data/translations';
 
 // Helper component to center and zoom map smoothly when selected location changes
 function MapRecenter({ center, zoom = 11 }) {
@@ -31,35 +32,118 @@ export function WeatherMap({
   activeLayer = 'temperature',
   onSelectLayer,
   geoCoords,
+  location,
+  weather,
   tempUnit = 'C',
   windUnit = 'kmh',
-  t = (k) => k
+  lang = 'en',
+  t = (k, f) => f || k
 }) {
   const [showAccessibleList, setShowAccessibleList] = useState(false);
   const [nearbyStations, setNearbyStations] = useState([]);
   const [loadingNearby, setLoadingNearby] = useState(false);
 
-  // Determine lat, lon, and name for current selected city
+  // Determine demo city match if available
   const cityMock = useMemo(() => {
     return ALL_DEMO_CITIES.find(
       c => c.city.toLowerCase() === selectedCity.toLowerCase() || c.name.toLowerCase() === selectedCity.toLowerCase()
     ) || ALL_DEMO_CITIES[0];
   }, [selectedCity]);
 
-  const mapCenter = useMemo(() => {
-    if (geoCoords && geoCoords.latitude && geoCoords.longitude && selectedCity === 'jodhpur') {
-      return [geoCoords.latitude, geoCoords.longitude];
+  // Dynamically resolve exact coordinates for any searched or detected city worldwide
+  const resolvedCoords = useMemo(() => {
+    // 1. Explicit location object with coordinates (from weather.location or geocoding)
+    if (location && (location.latitude || location.lat) && (location.longitude || location.lon)) {
+      const lat = Number(location.latitude ?? location.lat);
+      const lon = Number(location.longitude ?? location.lon);
+      if (!isNaN(lat) && !isNaN(lon)) {
+        return {
+          lat,
+          lon,
+          name: location.city || location.name || selectedCity,
+          country: location.country || ''
+        };
+      }
     }
-    return [cityMock.lat, cityMock.lon];
-  }, [cityMock, geoCoords, selectedCity]);
+    // 2. Weather object with coordinates
+    if (weather?.location && (weather.location.latitude || weather.location.lat) && (weather.location.longitude || weather.location.lon)) {
+      const lat = Number(weather.location.latitude ?? weather.location.lat);
+      const lon = Number(weather.location.longitude ?? weather.location.lon);
+      if (!isNaN(lat) && !isNaN(lon)) {
+        return {
+          lat,
+          lon,
+          name: weather.location.city || weather.location.name || selectedCity,
+          country: weather.location.country || ''
+        };
+      }
+    }
+    // 3. Browser geolocation coordinates if available
+    if (geoCoords && geoCoords.latitude && geoCoords.longitude) {
+      return {
+        lat: Number(geoCoords.latitude),
+        lon: Number(geoCoords.longitude),
+        name: location?.city || selectedCity || 'Current Location',
+        country: location?.country || ''
+      };
+    }
+    // 4. Demo city match
+    if (cityMock) {
+      return {
+        lat: cityMock.lat,
+        lon: cityMock.lon,
+        name: cityMock.name,
+        country: cityMock.country || 'India'
+      };
+    }
+    // 5. Fallback to default Jodhpur
+    return {
+      lat: ALL_DEMO_CITIES[0].lat,
+      lon: ALL_DEMO_CITIES[0].lon,
+      name: selectedCity || ALL_DEMO_CITIES[0].name,
+      country: 'India'
+    };
+  }, [location, weather, geoCoords, selectedCity, cityMock]);
 
-  // Load live nearby station telemetry whenever selected location changes
+  const mapCenter = useMemo(() => {
+    return [resolvedCoords.lat, resolvedCoords.lon];
+  }, [resolvedCoords.lat, resolvedCoords.lon]);
+
+  // Live atmospheric telemetry for the center location
+  const centerWeatherData = useMemo(() => {
+    if (weather && weather.current) {
+      return {
+        temp: weather.current.temperature,
+        condition: weather.current.condition,
+        rainProbability: weather.current.rainProbability,
+        windSpeed: weather.current.windSpeed,
+        windDirection: weather.current.windDirection,
+        cloudCover: weather.current.cloudCover,
+        humidity: weather.current.humidity,
+        aqi: weather.current.aqi,
+        hasAlert: (weather.alerts && weather.alerts.length > 0) || false
+      };
+    }
+    return {
+      temp: cityMock.temp,
+      condition: cityMock.condition,
+      rainProbability: cityMock.rainProbability,
+      windSpeed: cityMock.windSpeed,
+      windDirection: cityMock.windDirection,
+      cloudCover: cityMock.cloudCover,
+      humidity: cityMock.humidity,
+      aqi: cityMock.aqi,
+      hasAlert: cityMock.hasAlert
+    };
+  }, [weather, cityMock]);
+
+  // Load live nearby station telemetry whenever selected coordinates change
   useEffect(() => {
     let isMounted = true;
     async function loadNearby() {
       setLoadingNearby(true);
       try {
-        const stations = await fetchNearbyLocationsWeather(cityMock.lat, cityMock.lon, cityMock.name);
+        const stations = await fetchNearbyLocationsWeather(resolvedCoords.lat, resolvedCoords.lon, resolvedCoords.name);
         if (isMounted) {
           setNearbyStations(stations);
         }
@@ -71,11 +155,11 @@ export function WeatherMap({
     }
     loadNearby();
     return () => { isMounted = false; };
-  }, [cityMock.lat, cityMock.lon, cityMock.name]);
+  }, [resolvedCoords.lat, resolvedCoords.lon, resolvedCoords.name]);
 
   // Helper to generate dynamic divIcon HTML for Leaflet markers based on active layer
   const createMarkerIcon = (stationName, stationData, isSelected) => {
-    let layerValue = formatTemperature(stationData.temp || cityMock.temp, tempUnit);
+    let layerValue = formatTemperature(stationData.temp !== undefined ? stationData.temp : centerWeatherData.temp, tempUnit);
     
     if (activeLayer === 'rain') {
       layerValue = `${stationData.rainProbability || 10}% Rain`;
@@ -121,10 +205,10 @@ export function WeatherMap({
           </div>
           <div>
             <h2 style={{ fontSize: '1.2rem', fontWeight: 850, letterSpacing: '-0.01em' }}>
-              Real Geospatial Weather Map & Radar
+              {t('radarMapTitle', 'Real Geospatial Weather Map & Radar')}
             </h2>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              OpenStreetMap Basemap • Open-Meteo Telemetry • Click pins or chips to sync
+              {t('mapSubtitle', 'OpenStreetMap Basemap • Open-Meteo Telemetry • Click pins or chips to sync')}
             </span>
           </div>
         </div>
@@ -132,11 +216,11 @@ export function WeatherMap({
         <button
           onClick={() => setShowAccessibleList(!showAccessibleList)}
           className="btn-secondary"
-          style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', gap: '0.35rem' }}
-          aria-label={showAccessibleList ? "Switch to interactive map view" : "Switch to accessible location list table"}
+          style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', gap: '0.35rem', cursor: 'pointer' }}
+          aria-label={showAccessibleList ? t('viewInteractiveMap', 'View Interactive Map') : t('accessibleList', 'Accessible Location List')}
         >
           <Table size={15} />
-          <span>{showAccessibleList ? 'View Interactive Map' : 'Accessible Location List'}</span>
+          <span>{showAccessibleList ? t('viewInteractiveMap', 'View Interactive Map') : t('accessibleList', 'Accessible Location List')}</span>
         </button>
       </div>
 
@@ -154,13 +238,13 @@ export function WeatherMap({
           >
             <thead>
               <tr style={{ borderBottom: '1px solid var(--surface-border)', color: 'var(--text-muted)' }}>
-                <th style={{ padding: '0.65rem', textAlign: 'left' }}>Location Name</th>
-                <th style={{ padding: '0.65rem', textAlign: 'right' }}>Coordinates</th>
-                <th style={{ padding: '0.65rem', textAlign: 'right' }}>Temperature</th>
-                <th style={{ padding: '0.65rem', textAlign: 'right' }}>Condition</th>
-                <th style={{ padding: '0.65rem', textAlign: 'right' }}>Rain Chance</th>
-                <th style={{ padding: '0.65rem', textAlign: 'right' }}>AQI</th>
-                <th style={{ padding: '0.65rem', textAlign: 'center' }}>Action</th>
+                <th style={{ padding: '0.65rem', textAlign: 'left' }}>{t('locationName', 'Location Name')}</th>
+                <th style={{ padding: '0.65rem', textAlign: 'right' }}>{t('coordinates', 'Coordinates')}</th>
+                <th style={{ padding: '0.65rem', textAlign: 'right' }}>{t('temperature', 'Temperature')}</th>
+                <th style={{ padding: '0.65rem', textAlign: 'right' }}>{t('condition', 'Condition')}</th>
+                <th style={{ padding: '0.65rem', textAlign: 'right' }}>{t('rainChance', 'Rain Chance')}</th>
+                <th style={{ padding: '0.65rem', textAlign: 'right' }}>{t('aqi', 'AQI')}</th>
+                <th style={{ padding: '0.65rem', textAlign: 'center' }}>{t('action', 'Action')}</th>
               </tr>
             </thead>
             <tbody>
@@ -177,7 +261,7 @@ export function WeatherMap({
                     <td style={{ padding: '0.65rem', fontWeight: 750, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                       <MapPin size={15} style={{ color: isSelected ? 'var(--accent-blue)' : 'var(--text-muted)' }} />
                       <span>{station.name}</span>
-                      {isSelected && <span className="badge badge-info" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>Selected</span>}
+                      {isSelected && <span className="badge badge-info" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>{t('selected', 'Selected')}</span>}
                     </td>
                     <td style={{ padding: '0.65rem', textAlign: 'right', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
                       {station.lat.toFixed(2)}°, {station.lon.toFixed(2)}°
@@ -186,7 +270,7 @@ export function WeatherMap({
                       {formatTemperature(station.temp, tempUnit)}
                     </td>
                     <td style={{ padding: '0.65rem', textAlign: 'right', color: 'var(--text-secondary)' }}>
-                      {station.condition}
+                      {localizeCondition(station.condition, lang)}
                     </td>
                     <td style={{ padding: '0.65rem', textAlign: 'right', color: '#38bdf8', fontWeight: 600 }}>
                       {station.rainProbability}%
@@ -198,9 +282,9 @@ export function WeatherMap({
                       <button
                         onClick={() => onSelectCity(station.name)}
                         className="btn-secondary"
-                        style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
+                        style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', cursor: 'pointer' }}
                       >
-                        {isSelected ? 'Active' : 'Select'}
+                        {isSelected ? t('active', 'Active') : t('select', 'Select')}
                       </button>
                     </td>
                   </tr>
@@ -230,31 +314,23 @@ export function WeatherMap({
             {/* Selected Primary Location Leaflet Marker */}
             <Marker
               position={mapCenter}
-              icon={createMarkerIcon(cityMock.name, {
-                temp: cityMock.temp,
-                rainProbability: cityMock.rainProbability,
-                windSpeed: cityMock.windSpeed,
-                windDirection: cityMock.windDirection,
-                cloudCover: cityMock.cloudCover,
-                aqi: cityMock.aqi,
-                hasAlert: cityMock.hasAlert
-              }, true)}
+              icon={createMarkerIcon(resolvedCoords.name, centerWeatherData, true)}
               evented={true}
             >
               <Popup>
                 <div style={{ padding: '0.4rem', color: 'var(--text-primary)', minWidth: '180px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.35rem' }}>
                     <MapPin size={15} style={{ color: 'var(--accent-blue)' }} />
-                    <strong style={{ fontSize: '0.95rem' }}>{cityMock.name}</strong>
+                    <strong style={{ fontSize: '0.95rem' }}>{resolvedCoords.name}</strong>
                   </div>
                   <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
-                    {formatTemperature(cityMock.temp, tempUnit)} • {cityMock.condition}
+                    {formatTemperature(centerWeatherData.temp, tempUnit)} • {localizeCondition(centerWeatherData.condition, lang)}
                   </p>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem' }}>
-                    <div>Rain: <span style={{ color: '#38bdf8' }}>{cityMock.rainProbability}%</span></div>
-                    <div>Wind: <span>{formatWind(cityMock.windSpeed, windUnit)}</span></div>
-                    <div>Humidity: <span>{cityMock.humidity}%</span></div>
-                    <div>AQI: <span style={{ color: '#10b981' }}>{cityMock.aqi || 80}</span></div>
+                    <div>{t('rain', 'Rain')}: <span style={{ color: '#38bdf8' }}>{centerWeatherData.rainProbability}%</span></div>
+                    <div>{t('wind', 'Wind')}: <span>{formatWind(centerWeatherData.windSpeed, windUnit)}</span></div>
+                    <div>{t('humidity', 'Humidity')}: <span>{centerWeatherData.humidity}%</span></div>
+                    <div>{t('aqi', 'AQI')}: <span style={{ color: '#10b981' }}>{centerWeatherData.aqi || 80}</span></div>
                   </div>
                 </div>
               </Popup>
@@ -278,14 +354,14 @@ export function WeatherMap({
                     <div style={{ padding: '0.4rem', color: 'var(--text-primary)', minWidth: '160px' }}>
                       <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.25rem' }}>{station.name}</div>
                       <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                        {formatTemperature(station.temp, tempUnit)} • {station.condition}
+                        {formatTemperature(station.temp, tempUnit)} • {localizeCondition(station.condition, lang)}
                       </div>
                       <button
                         onClick={() => onSelectCity(station.name)}
                         className="btn-primary"
-                        style={{ marginTop: '0.5rem', width: '100%', padding: '0.3rem', fontSize: '0.75rem' }}
+                        style={{ marginTop: '0.5rem', width: '100%', padding: '0.3rem', fontSize: '0.75rem', cursor: 'pointer' }}
                       >
-                        Set as Dashboard Location
+                        {t('setAsDashboardLocation', 'Set as Dashboard Location')}
                       </button>
                     </div>
                   </Popup>
@@ -319,9 +395,9 @@ export function WeatherMap({
               boxShadow: '0 0 10px var(--accent-blue)'
             }} />
             <div style={{ fontSize: '0.82rem', color: '#f8fafc' }}>
-              <strong>Map Focus:</strong> {cityMock.name} ({cityMock.country || 'India'})
+              <strong>{t('mapFocus', 'Map Focus')}:</strong> {resolvedCoords.name} {resolvedCoords.country ? `(${resolvedCoords.country})` : ''}
               <span style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>
-                {formatTemperature(cityMock.temp, tempUnit)} • {cityMock.condition} • Humidity {cityMock.humidity}% • AQI {cityMock.aqi || 85}
+                {formatTemperature(centerWeatherData.temp, tempUnit)} • {localizeCondition(centerWeatherData.condition, lang)} • {t('humidity', 'Humidity')} {centerWeatherData.humidity}% • {t('aqi', 'AQI')} {centerWeatherData.aqi || 85}
               </span>
             </div>
           </div>
@@ -332,11 +408,11 @@ export function WeatherMap({
       <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--surface-border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
           <span style={{ fontSize: '0.75rem', fontWeight: 750, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-            Nearby Regional Stations & Telemetry ({nearbyStations.length})
+            {t('nearbyStationsTelemetry', 'Nearby Regional Stations & Telemetry')} ({nearbyStations.length})
           </span>
           {loadingNearby && (
             <span style={{ fontSize: '0.72rem', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <RefreshCw size={10} className="animate-spin" /> Updating station feeds...
+              <RefreshCw size={10} className="animate-spin" /> {t('updatingFeeds', 'Updating station feeds...')}
             </span>
           )}
         </div>

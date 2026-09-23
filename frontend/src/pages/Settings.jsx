@@ -1,9 +1,25 @@
 import React from 'react';
 import { 
   Settings as SettingsIcon, Sun, Moon, Monitor, Thermometer, Wind, MapPin, 
-  Check, Globe, User, Sprout, Plane, AlertTriangle, Bell, ShieldCheck, CheckSquare, Square 
+  Check, Globe, User, Sprout, Plane, AlertTriangle, Bell, ShieldCheck, CheckSquare, Square,
+  Car, CalendarCheck, Activity, Star, Trash2, ArrowUp, ArrowDown, RotateCcw,
+  Sliders, Compass, Sparkles, ExternalLink
 } from 'lucide-react';
 import { SUPPORTED_LANGUAGES } from '../data/translations';
+import { CONTEXT_MODES } from '../data/contextModes';
+import { useSavedLocations } from '../hooks/useSavedLocations';
+import { useDashboardPreferences } from '../hooks/useDashboardPreferences';
+
+const MODE_ICONS = {
+  general: User,
+  farmer: Sprout,
+  traveler: Plane,
+  outdoor: Sun,
+  emergency: AlertTriangle,
+  commuter: Car,
+  event_planner: CalendarCheck,
+  fitness: Activity
+};
 
 export function Settings({
   theme,
@@ -13,6 +29,7 @@ export function Settings({
   windUnit,
   setWindUnit,
   city,
+  onSelectCity,
   onRequestLocation,
   geoState,
   userMode,
@@ -21,29 +38,50 @@ export function Settings({
   setLang,
   alertPreferences,
   setAlertPreferences,
-  t = (k) => k
+  t = (k, f) => f || k,
+  onNavigate
 }) {
-  const themeOptions = [
-    { id: 'system', label: 'System Default', icon: Monitor },
-    { id: 'light', label: 'Light Mode', icon: Sun },
-    { id: 'dark', label: 'Dark Mode', icon: Moon }
-  ];
+  const { savedLocations, removeLocation } = useSavedLocations();
+  const { 
+    preferences, 
+    sectionOrder, 
+    toggleSection, 
+    moveSection, 
+    resetPreferences, 
+    isSectionVisible 
+  } = useDashboardPreferences();
 
-  const userModes = [
-    { id: 'general', label: 'General', desc: 'Standard comprehensive weather view', icon: User },
-    { id: 'farmer', label: 'Farmer', desc: 'Prioritizes rain volume, soil moisture, and wind', icon: Sprout },
-    { id: 'traveler', label: 'Traveler', desc: 'Prioritizes visibility, road safety, and delays', icon: Plane },
-    { id: 'outdoor', label: 'Outdoor', desc: 'Prioritizes UV index, AQI, and heat stress', icon: Sun },
-    { id: 'emergency', label: 'Emergency', desc: 'Prioritizes active alerts and safety advisories', icon: AlertTriangle }
+  const SECTION_LABELS = {
+    currentWeather: t('sectionCurrentWeather', 'Current Weather & Hero'),
+    weatherDetails: t('sectionWeatherDetails', 'Weather Details & Telemetry'),
+    smartGuidance: t('sectionSmartGuidance', 'Smart Weather Guidance'),
+    weatherTimeline: t('weatherTimeline', 'Weather Timeline & Hourly Forecast'),
+    weatherChart: t('sectionWeatherChart', '24-Hour Temperature Chart'),
+    dailyForecast: t('sectionDailyForecast', '7-Day Daily Forecast'),
+    alertsAndSummary: t('sectionAlerts', 'Active Weather Alerts & AI Summary'),
+    sunMoon: t('sectionSunMoon', 'Sun & Moon Telemetry'),
+    weatherMap: t('sectionWeatherMap', 'Interactive Radar & Weather Map'),
+    climate: t('sectionClimate', 'Climate & Historical Trends')
+  };
+  const themeOptions = [
+    { id: 'system', label: t('themeSystem', 'System Default'), icon: Monitor },
+    { id: 'light', label: t('themeLight', 'Light Mode'), icon: Sun },
+    { id: 'dark', label: t('themeDark', 'Dark Mode'), icon: Moon }
   ];
 
   const alertCategories = [
-    { id: 'heavyRain', label: 'Heavy Rain & Flooding' },
-    { id: 'thunderstorm', label: 'Thunderstorms & Lightning' },
-    { id: 'extremeHeat', label: 'Extreme Heat & Heatwave' },
-    { id: 'strongWind', label: 'High Winds & Gales' },
-    { id: 'poorAQI', label: 'Hazardous Air Quality (AQI)' },
-    { id: 'extremeCold', label: 'Freezing Ice & Cold Wave' }
+    { id: 'heavyRain', label: t('alertHeavyRain', 'Heavy Rain & Flooding') },
+    { id: 'thunderstorm', label: t('alertThunderstorm', 'Thunderstorms & Lightning') },
+    { id: 'extremeHeat', label: t('alertExtremeHeat', 'Extreme Heat & Heatwave') },
+    { id: 'strongWind', label: t('alertStrongWind', 'High Winds & Gales') },
+    { id: 'poorAQI', label: t('alertPoorAQI', 'Hazardous Air Quality (AQI)') },
+    { id: 'extremeCold', label: t('alertExtremeCold', 'Freezing Ice & Cold Wave') }
+  ];
+
+  const frequencyOptions = [
+    { id: 'immediate', label: t('freqImmediate', 'Immediately') },
+    { id: 'important', label: t('freqImportant', 'Important Only') },
+    { id: 'daily', label: t('freqDaily', 'Daily Digest') }
   ];
 
   const isGeoRequesting = geoState?.status === 'requesting';
@@ -66,20 +104,24 @@ export function Settings({
   };
 
   return (
-    <div className="page-fade-in" style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div className="page-fade-in" style={{ maxWidth: '850px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
         <SettingsIcon size={26} style={{ color: 'var(--accent-blue)' }} />
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 850 }}>App Preferences & Settings</h1>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 850 }}>
+          {t('appPreferences', 'App Preferences & Settings')}
+        </h1>
       </div>
 
-      {/* Language / भाषा (A12) */}
+      {/* Language / भाषा */}
       <div className="glass-card" style={{ padding: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
           <Globe size={18} style={{ color: 'var(--accent-blue)' }} />
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 750 }}>Language / भाषा (A12)</h2>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 750 }}>
+            {t('language', 'Language')} / {t('bhasha', 'भाषा')}
+          </h2>
         </div>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-          Choose your interface language. Supports English, Hindi, and Hinglish. Architecture ready for additional regional Indian languages.
+          {t('languageDesc', 'Choose your application interface language. Translates navigation, cards, alerts, forecasts, and AI assistance.')}
         </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
@@ -98,7 +140,9 @@ export function Settings({
                   background: isSelected ? 'var(--accent-glow)' : 'var(--surface-color)',
                   border: isSelected ? '2px solid var(--accent-blue)' : '1px solid var(--surface-border)',
                   fontWeight: isSelected ? 750 : 500,
-                  color: isSelected ? 'var(--accent-blue)' : 'var(--text-primary)'
+                  color: isSelected ? 'var(--accent-blue)' : 'var(--text-primary)',
+                  cursor: 'pointer',
+                  transition: 'all var(--transition-fast)'
                 }}
               >
                 <div>
@@ -110,25 +154,27 @@ export function Settings({
             );
           })}
         </div>
-        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.75rem' }}>
-          Additional regional languages (Gujarati, Marathi, Tamil, Telugu, Bengali, Punjabi, Kannada, Malayalam) queued for Phase B.
-        </div>
       </div>
 
-      {/* User Context Modes (A17) */}
+      {/* User Context Modes - 8 Profiles */}
       <div className="glass-card" style={{ padding: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
           <User size={18} style={{ color: 'var(--accent-indigo)' }} />
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 750 }}>User Context Mode (A17)</h2>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 750 }}>
+            {t('contextModes', 'User Context Modes')} (8 {t('profiles', 'Profiles')})
+          </h2>
         </div>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-          Customizes dashboard presentation and AI advisories for your specific activity or profession.
+          {t('contextModesDesc', 'Select your activity persona. Customizes dashboard metric prioritization, advice, and WeatherGPT AI perspectives.')}
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
-          {userModes.map((m) => {
-            const Icon = m.icon;
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '0.75rem' }}>
+          {CONTEXT_MODES.map((m) => {
+            const Icon = MODE_ICONS[m.id] || User;
             const isSelected = userMode === m.id;
+            const modeName = m.names[lang] || m.names.en;
+            const modeDesc = m.descriptions[lang] || m.descriptions.en;
+
             return (
               <button
                 key={m.id}
@@ -141,18 +187,20 @@ export function Settings({
                   borderRadius: 'var(--radius-md)',
                   background: isSelected ? 'var(--accent-glow)' : 'var(--surface-color)',
                   border: isSelected ? '2px solid var(--accent-blue)' : '1px solid var(--surface-border)',
-                  textAlign: 'left'
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  transition: 'all var(--transition-fast)'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '0.35rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 800, color: isSelected ? 'var(--accent-blue)' : 'var(--text-primary)' }}>
                     <Icon size={16} />
-                    <span>{m.label}</span>
+                    <span>{modeName}</span>
                   </div>
                   {isSelected && <Check size={16} style={{ color: 'var(--accent-blue)' }} />}
                 </div>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  {m.desc}
+                  {modeDesc}
                 </span>
               </button>
             );
@@ -160,20 +208,22 @@ export function Settings({
         </div>
       </div>
 
-      {/* Smart Alert Preferences (A20) */}
+      {/* Smart Alert Preferences */}
       <div className="glass-card" style={{ padding: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
           <Bell size={18} style={{ color: '#ef4444' }} />
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 750 }}>Smart Alert Preferences (A20)</h2>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 750 }}>
+            {t('alertPreferences', 'Smart Alert Preferences')}
+          </h2>
         </div>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-          Customize which weather warnings matter to you and notification urgency (Frontend demo preferences).
+          {t('alertPreferencesDesc', 'Customize which weather warnings matter to you and notification urgency.')}
         </p>
 
         {/* Alert Type Checkboxes */}
         <div style={{ marginBottom: '1.25rem' }}>
           <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>
-            Active Categories:
+            {t('activeCategories', 'Active Categories')}:
           </span>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.5rem' }}>
             {alertCategories.map((cat) => {
@@ -191,7 +241,8 @@ export function Settings({
                     background: 'var(--surface-color)',
                     cursor: 'pointer',
                     fontSize: '0.85rem',
-                    color: isChecked ? 'var(--text-primary)' : 'var(--text-muted)'
+                    color: isChecked ? 'var(--text-primary)' : 'var(--text-muted)',
+                    transition: 'all var(--transition-fast)'
                   }}
                 >
                   {isChecked ? (
@@ -209,14 +260,10 @@ export function Settings({
         {/* Frequency Choice */}
         <div>
           <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>
-            Notification Frequency:
+            {t('notificationFrequency', 'Notification Frequency')}:
           </span>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {[
-              { id: 'immediate', label: 'Immediately' },
-              { id: 'important', label: 'Important Only' },
-              { id: 'daily', label: 'Daily Digest' }
-            ].map((f) => {
+            {frequencyOptions.map((f) => {
               const isSelected = alertPreferences?.frequency === f.id;
               return (
                 <button
@@ -236,10 +283,10 @@ export function Settings({
       {/* Theme Settings */}
       <div className="glass-card" style={{ padding: '1.5rem' }}>
         <h2 style={{ fontSize: '1.1rem', fontWeight: 750, marginBottom: '0.5rem' }}>
-          Theme & Visual Atmosphere
+          {t('appearance', 'Theme & Visual Atmosphere')}
         </h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-          Choose your preferred color theme or match your operating system.
+          {t('themeDesc', 'Choose your preferred color theme or match your operating system.')}
         </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
@@ -259,7 +306,8 @@ export function Settings({
                   background: isSelected ? 'var(--accent-glow)' : 'var(--surface-color)',
                   border: isSelected ? '2px solid var(--accent-blue)' : '1px solid var(--surface-border)',
                   fontWeight: isSelected ? 750 : 500,
-                  color: isSelected ? 'var(--accent-blue)' : 'var(--text-primary)'
+                  color: isSelected ? 'var(--accent-blue)' : 'var(--text-primary)',
+                  cursor: 'pointer'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -276,10 +324,10 @@ export function Settings({
       {/* Units Settings */}
       <div className="glass-card" style={{ padding: '1.5rem' }}>
         <h2 style={{ fontSize: '1.1rem', fontWeight: 750, marginBottom: '0.5rem' }}>
-          Units of Measurement
+          {t('measurementUnits', 'Units of Measurement')}
         </h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-          Configure display units for temperature and wind velocity.
+          {t('unitsDesc', 'Configure display units for temperature and wind velocity.')}
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -287,7 +335,9 @@ export function Settings({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Thermometer size={18} style={{ color: 'var(--accent-blue)' }} />
-              <span style={{ fontWeight: 600, fontSize: '0.92rem' }}>Temperature Unit</span>
+              <span style={{ fontWeight: 600, fontSize: '0.92rem' }}>
+                {t('temperatureUnit', 'Temperature Unit')}
+              </span>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button
@@ -295,14 +345,14 @@ export function Settings({
                 className={tempUnit === 'C' ? 'btn-primary' : 'btn-secondary'}
                 style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}
               >
-                Celsius (°C)
+                {t('celsius', 'Celsius')} (°C)
               </button>
               <button
                 onClick={() => setTempUnit('F')}
                 className={tempUnit === 'F' ? 'btn-primary' : 'btn-secondary'}
                 style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}
               >
-                Fahrenheit (°F)
+                {t('fahrenheit', 'Fahrenheit')} (°F)
               </button>
             </div>
           </div>
@@ -311,7 +361,9 @@ export function Settings({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', paddingTop: '1rem', borderTop: '1px solid var(--surface-border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Wind size={18} style={{ color: 'var(--accent-cyan)' }} />
-              <span style={{ fontWeight: 600, fontSize: '0.92rem' }}>Wind Speed Unit</span>
+              <span style={{ fontWeight: 600, fontSize: '0.92rem' }}>
+                {t('windSpeedUnit', 'Wind Speed Unit')}
+              </span>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button
@@ -319,7 +371,7 @@ export function Settings({
                 className={windUnit === 'kmh' ? 'btn-primary' : 'btn-secondary'}
                 style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}
               >
-                km/h (Default)
+                km/h
               </button>
               <button
                 onClick={() => setWindUnit('mph')}
@@ -336,10 +388,10 @@ export function Settings({
       {/* Location Configuration */}
       <div className="glass-card" style={{ padding: '1.5rem' }}>
         <h2 style={{ fontSize: '1.1rem', fontWeight: 750, marginBottom: '0.5rem' }}>
-          Location Configuration
+          {t('locationSettings', 'Location & Geolocation')}
         </h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-          Active station: <strong>{city ? city.charAt(0).toUpperCase() + city.slice(1) : 'Not set'}</strong>
+          {t('activeStation', 'Active station')}: <strong>{city ? city.charAt(0).toUpperCase() + city.slice(1) : t('notSet', 'Not set')}</strong>
         </p>
 
         <button 
@@ -349,7 +401,11 @@ export function Settings({
           style={{ gap: '0.5rem' }}
         >
           <MapPin size={16} style={{ color: 'var(--accent-blue)' }} />
-          <span>{isGeoRequesting ? 'Detecting coordinates...' : 'Update via Browser Geolocation'}</span>
+          <span>
+            {isGeoRequesting 
+              ? t('detectingCoordinates', 'Detecting coordinates...') 
+              : t('updateViaGeolocation', 'Update via Browser Geolocation')}
+          </span>
         </button>
 
         {geoState?.message && (
@@ -362,6 +418,241 @@ export function Settings({
             {geoState.message}
           </p>
         )}
+      </div>
+
+      {/* Saved Locations Management */}
+      <div className="glass-card" style={{ padding: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            <Star size={18} style={{ color: '#f59e0b', fill: '#f59e0b' }} />
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 750 }}>
+              {t('savedLocations', 'Saved Locations')} ({savedLocations.length})
+            </h2>
+          </div>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            {t('quickSavedCities', 'Quick Access Cities')}
+          </span>
+        </div>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+          {t('noSavedLocationsDesc', 'Star or save your favorite cities for one-click weather tracking across the dashboard.')}
+        </p>
+
+        {savedLocations.length === 0 ? (
+          <div style={{
+            padding: '1.5rem',
+            textAlign: 'center',
+            background: 'var(--surface-color)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px dashed var(--surface-border)',
+            color: 'var(--text-muted)',
+            fontSize: '0.88rem'
+          }}>
+            {t('noSavedLocations', 'No Saved Locations')} — {t('saveLocation', 'Save Location')} from the search bar or dashboard.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            {savedLocations.map((loc) => (
+              <div
+                key={loc.city || loc.name}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.75rem 1rem',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--surface-color)',
+                  border: '1px solid var(--surface-border)',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <MapPin size={16} style={{ color: 'var(--accent-blue)' }} />
+                  <div>
+                    <span style={{ fontWeight: 750, fontSize: '0.92rem', display: 'block', color: 'var(--text-primary)' }}>
+                      {loc.displayName || loc.name}
+                    </span>
+                    {(loc.latitude && loc.longitude) && (
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        {Number(loc.latitude).toFixed(2)}°N, {Number(loc.longitude).toFixed(2)}°E
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {onSelectCity && (
+                    <button
+                      onClick={() => {
+                        onSelectCity(loc.city || loc.name);
+                        if (onNavigate) onNavigate('dashboard');
+                      }}
+                      className="btn-secondary"
+                      style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
+                    >
+                      {t('viewDetails', 'View Weather')}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => removeLocation(loc.city || loc.name)}
+                    aria-label={`Remove ${loc.name} from saved locations`}
+                    title={t('removeSaved', 'Remove from Saved')}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      padding: '0.4rem',
+                      borderRadius: 'var(--radius-sm)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      transition: 'color var(--transition-fast)'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Dashboard Preferences & Personalization */}
+      <div className="glass-card" style={{ padding: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            <Sliders size={18} style={{ color: 'var(--accent-blue)' }} />
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 750 }}>
+              {t('dashboardPreferences', 'Dashboard Preferences')}
+            </h2>
+          </div>
+          <button
+            onClick={resetPreferences}
+            className="btn-secondary"
+            style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+          >
+            <RotateCcw size={13} />
+            <span>{t('resetOrder', 'Reset Default Order')}</span>
+          </button>
+        </div>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+          {t('dashboardPreferencesDesc', 'Choose which sections are displayed on your dashboard and customize their order.')}
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          {sectionOrder.map((sectionKey, index) => {
+            const isVisible = isSectionVisible(sectionKey);
+            const label = SECTION_LABELS[sectionKey] || sectionKey;
+            const isFirst = index === 0;
+            const isLast = index === sectionOrder.length - 1;
+
+            return (
+              <div
+                key={sectionKey}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.65rem 0.85rem',
+                  borderRadius: 'var(--radius-md)',
+                  background: isVisible ? 'var(--surface-color)' : 'rgba(0,0,0,0.03)',
+                  border: '1px solid var(--surface-border)',
+                  opacity: isVisible ? 1 : 0.65,
+                  transition: 'all var(--transition-fast)'
+                }}
+              >
+                <div 
+                  onClick={() => toggleSection(sectionKey)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', flex: 1 }}
+                >
+                  {isVisible ? (
+                    <CheckSquare size={17} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
+                  ) : (
+                    <Square size={17} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                  )}
+                  <span style={{
+                    fontSize: '0.88rem',
+                    fontWeight: isVisible ? 650 : 450,
+                    color: isVisible ? 'var(--text-primary)' : 'var(--text-muted)'
+                  }}>
+                    {label}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <button
+                    onClick={() => moveSection(index, 'up')}
+                    disabled={isFirst}
+                    aria-label={`Move ${label} up`}
+                    title={t('moveUp', 'Move Up')}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid var(--surface-border)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '0.3rem',
+                      cursor: isFirst ? 'not-allowed' : 'pointer',
+                      opacity: isFirst ? 0.3 : 1,
+                      color: 'var(--text-secondary)',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <ArrowUp size={14} />
+                  </button>
+                  <button
+                    onClick={() => moveSection(index, 'down')}
+                    disabled={isLast}
+                    aria-label={`Move ${label} down`}
+                    title={t('moveDown', 'Move Down')}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid var(--surface-border)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '0.3rem',
+                      cursor: isLast ? 'not-allowed' : 'pointer',
+                      opacity: isLast ? 0.3 : 1,
+                      color: 'var(--text-secondary)',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <ArrowDown size={14} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* How WeatherGPT Works Card */}
+      <div className="glass-card" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, var(--surface-card), var(--surface-color))' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.35rem' }}>
+              <Sparkles size={18} style={{ color: 'var(--accent-blue)' }} />
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 750 }}>
+                {t('howWeatherGPTWorks', 'How WeatherGPT Works')}
+              </h2>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0, lineHeight: 1.4 }}>
+              {t('howWeatherGPTWorksSubtitle', 'See how WeatherGPT turns a weather question into a grounded response.')}
+            </p>
+          </div>
+          {onNavigate && (
+            <button
+              onClick={() => onNavigate('pipeline')}
+              className="btn-primary"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', fontSize: '0.85rem' }}
+            >
+              <span>{t('viewPipeline', 'Explore 8-Stage Architecture')}</span>
+              <ExternalLink size={14} />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

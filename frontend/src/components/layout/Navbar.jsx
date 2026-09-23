@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   CloudSun, Sparkles, LayoutDashboard, MessageSquare, History, ShieldAlert, 
   Settings as SettingsIcon, Sun, Moon, Monitor, MapPin, Map, GitBranch, Globe,
-  ChevronDown 
+  ChevronDown, CalendarRange, ArrowLeftRight
 } from 'lucide-react';
 import { SUPPORTED_LANGUAGES } from '../../data/translations';
 
@@ -23,17 +23,19 @@ export function Navbar({
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef(null);
 
-  // Desktop visible items strictly limited to: Dashboard | Map | AI Chat | Alerts
+  // Desktop visible items: Dashboard | Compare | WeatherGPT AI | Map | Alerts | Historical
   const primaryNavItems = [
     { id: 'home', label: t('dashboard', 'Dashboard'), icon: LayoutDashboard },
+    { id: 'compare', label: t('compare', 'Compare'), icon: ArrowLeftRight },
+    { id: 'chat', label: t('chat', 'WeatherGPT AI'), icon: Sparkles },
     { id: 'map', label: t('map', 'Map'), icon: Map },
-    { id: 'chat', label: t('chat', 'AI Chat'), icon: MessageSquare },
-    { id: 'alerts', label: t('alerts', 'Alerts'), icon: ShieldAlert }
+    { id: 'alerts', label: t('alerts', 'Alerts'), icon: ShieldAlert },
+    { id: 'historical', label: t('historical', 'Historical Weather'), icon: CalendarRange }
   ];
 
-  // Secondary items moved into More ▾ dropdown: AI Pipeline | History | Settings
+  // Secondary items moved into More ▾ dropdown: How WeatherGPT Works | History | Settings
   const moreNavItems = [
-    { id: 'pipeline', label: t('pipeline', 'AI Pipeline'), icon: GitBranch },
+    { id: 'pipeline', label: t('howWeatherGPTWorks', 'How WeatherGPT Works'), icon: Sparkles },
     { id: 'history', label: t('history', 'History'), icon: History },
     { id: 'settings', label: t('settings', 'Settings'), icon: SettingsIcon }
   ];
@@ -83,7 +85,7 @@ export function Navbar({
   };
 
   return (
-    <header style={{
+    <header className="mobile-header" style={{
       position: 'fixed',
       top: 0,
       left: 0,
@@ -124,7 +126,9 @@ export function Navbar({
                 <Sparkles size={10} /> AI
               </span>
             </div>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Conversational Weather Intelligence</span>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+              {t('atmosphericIntelligence', 'Conversational Weather Intelligence')}
+            </span>
           </div>
         </div>
 
@@ -183,7 +187,7 @@ export function Navbar({
                   cursor: 'pointer'
                 }}
               >
-                <span>More</span>
+                <span>{t('more', 'More')}</span>
                 <ChevronDown 
                   size={14} 
                   style={{ 
@@ -269,10 +273,10 @@ export function Navbar({
               onClick={() => setActivePage('settings')}
               className="badge badge-advisory" 
               style={{ display: 'none', cursor: 'pointer', fontSize: '0.68rem' }}
-              title="Current Context Mode - Click to change in Settings"
+              title={t('clickToModifyMode', 'Current Context Mode - Click to change in Settings')}
               id="nav-user-mode"
             >
-              Mode: {userMode}
+              {t('mode', 'Mode')}: {userMode}
             </span>
           )}
 

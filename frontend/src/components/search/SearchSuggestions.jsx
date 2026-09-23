@@ -1,7 +1,7 @@
 import React from 'react';
 import { MapPin, Sparkles, Clock } from 'lucide-react';
 
-export function SearchSuggestions({ query, onSelectCity, onSelectQuery, searchHistory = [], onClose }) {
+export function SearchSuggestions({ query, onSelectCity, onSelectQuery, searchHistory = [], onClose, t = (k, f) => f || k }) {
   const popularCities = ["Jodhpur", "Delhi", "Mumbai", "Jaipur", "London", "Tokyo"];
   
   const sampleQueries = [
@@ -31,7 +31,7 @@ export function SearchSuggestions({ query, onSelectCity, onSelectQuery, searchHi
       {!query && searchHistory.length > 0 && (
         <div style={{ marginBottom: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-            <Clock size={12} /> Recent Searches
+            <Clock size={12} /> {t('recentSearches', 'Recent Searches')}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
             {searchHistory.slice(0, 4).map((item, idx) => (
@@ -44,7 +44,8 @@ export function SearchSuggestions({ query, onSelectCity, onSelectQuery, searchHi
                   background: 'var(--surface-color)',
                   border: '1px solid var(--surface-border)',
                   fontSize: '0.8rem',
-                  color: 'var(--text-primary)'
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer'
                 }}
               >
                 {item.city}
@@ -57,7 +58,7 @@ export function SearchSuggestions({ query, onSelectCity, onSelectQuery, searchHi
       {/* Suggested Cities */}
       <div style={{ marginBottom: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-          <MapPin size={12} /> Popular Cities
+          <MapPin size={12} /> {t('popularCities', 'Popular Cities')}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
           {filteredCities.map((city) => (
@@ -74,7 +75,8 @@ export function SearchSuggestions({ query, onSelectCity, onSelectQuery, searchHi
                 color: 'var(--accent-blue)',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.25rem'
+                gap: '0.25rem',
+                cursor: 'pointer'
               }}
             >
               <MapPin size={12} />
@@ -87,7 +89,7 @@ export function SearchSuggestions({ query, onSelectCity, onSelectQuery, searchHi
       {/* AI Sample Questions */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-          <Sparkles size={12} /> Ask WeatherGPT
+          <Sparkles size={12} /> {t('askWeatherGPT', 'Ask WeatherGPT')}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
           {sampleQueries.map((q, idx) => (
@@ -99,12 +101,13 @@ export function SearchSuggestions({ query, onSelectCity, onSelectQuery, searchHi
                 padding: '0.45rem 0.75rem',
                 borderRadius: 'var(--radius-sm)',
                 background: 'var(--surface-color)',
+                border: '1px solid var(--surface-border)',
                 fontSize: '0.82rem',
                 color: 'var(--text-secondary)',
-                transition: 'all var(--transition-fast)'
+                cursor: 'pointer'
               }}
             >
-              "{q}"
+              {q}
             </button>
           ))}
         </div>

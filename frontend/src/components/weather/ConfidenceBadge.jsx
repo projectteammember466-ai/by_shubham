@@ -1,7 +1,7 @@
 import React from 'react';
 import { ShieldCheck, AlertTriangle, HelpCircle } from 'lucide-react';
 
-export function ConfidenceBadge({ confidence, t = (k) => k }) {
+export function ConfidenceBadge({ confidence, t = (k, f) => f || k }) {
   if (!confidence) return null;
 
   const level = confidence.level || 'High';
@@ -54,7 +54,7 @@ export function ConfidenceBadge({ confidence, t = (k) => k }) {
     title={confidence.uncertaintyExplanation || 'Model projection confidence'}
     >
       <Icon size={13} />
-      <span>{level} Confidence ({percentage}%)</span>
+      <span>{t(level.toLowerCase(), level)} {t('confidence', 'Confidence')} ({percentage}%)</span>
       {windowText && <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>• {windowText}</span>}
     </div>
   );

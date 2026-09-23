@@ -10,6 +10,8 @@ export function getHourlyForecast(baseTemp = 30) {
   const rainChances = [5, 5, 10, 10, 15, 20, 10, 5];
   const conditions = ["Clear", "Clear", "Clear", "Sunny", "Sunny", "Partly Cloudy", "Clear", "Clear"];
   const icons = ["Moon", "Moon", "Sun", "Sun", "Sun", "SunMedium", "Moon", "Moon"];
+  const humidities = [55, 60, 58, 48, 38, 35, 42, 50];
+  const windSpeeds = [10, 8, 9, 12, 16, 18, 14, 11];
 
   return hours.map((time, idx) => ({
     id: `h-${idx}`,
@@ -17,7 +19,9 @@ export function getHourlyForecast(baseTemp = 30) {
     temp: Math.round(baseTemp + tempOffsets[idx]),
     rainProbability: rainChances[idx],
     condition: conditions[idx],
-    icon: icons[idx]
+    icon: icons[idx],
+    humidity: humidities[idx],
+    windSpeed: windSpeeds[idx]
   }));
 }
 

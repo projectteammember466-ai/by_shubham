@@ -1,23 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, MessageSquare, ShieldAlert, History, Settings, Map, 
-  MoreHorizontal, GitBranch, X 
+  MoreHorizontal, GitBranch, X, CalendarRange, Sparkles, ArrowLeftRight 
 } from 'lucide-react';
 
 export function MobileNav({ activePage, setActivePage, t = (k) => k }) {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
 
-  const isMoreActive = ['pipeline', 'history', 'settings'].includes(activePage);
+  const isMoreActive = ['historical', 'pipeline', 'history', 'settings', 'map'].includes(activePage);
 
   const tabs = [
     { id: 'home', label: t('dashboard', 'Dashboard'), icon: LayoutDashboard },
-    { id: 'map', label: t('map', 'Map'), icon: Map },
-    { id: 'chat', label: t('chat', 'AI Chat'), icon: MessageSquare },
+    { id: 'compare', label: t('compare', 'Compare'), icon: ArrowLeftRight },
+    { id: 'chat', label: t('chat', 'WeatherGPT AI'), icon: Sparkles },
     { id: 'alerts', label: t('alerts', 'Alerts'), icon: ShieldAlert },
   ];
 
   const moreItems = [
-    { id: 'pipeline', label: t('pipeline', 'AI Pipeline'), icon: GitBranch },
+    { id: 'map', label: t('map', 'Weather Map'), icon: Map },
+    { id: 'historical', label: t('historical', 'Historical Weather'), icon: CalendarRange },
+    { id: 'pipeline', label: t('howWeatherGPTWorks', 'How WeatherGPT Works'), icon: Sparkles },
     { id: 'history', label: t('history', 'History'), icon: History },
     { id: 'settings', label: t('settings', 'Settings'), icon: Settings },
   ];
@@ -77,7 +79,7 @@ export function MobileNav({ activePage, setActivePage, t = (k) => k }) {
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
             <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-              More Options
+              {t('moreOptions', 'More Options')}
             </span>
             <button
               onClick={() => setShowMoreMenu(false)}

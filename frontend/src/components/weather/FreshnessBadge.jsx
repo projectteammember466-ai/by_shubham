@@ -1,7 +1,7 @@
 import React from 'react';
 import { Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 
-export function FreshnessBadge({ metadata, t = (k) => k }) {
+export function FreshnessBadge({ metadata, t = (k, f) => f || k }) {
   if (!metadata) return null;
 
   const freshness = metadata.freshness || 'Fresh';
@@ -59,7 +59,9 @@ export function FreshnessBadge({ metadata, t = (k) => k }) {
         backgroundColor: style.dotColor,
         display: 'inline-block'
       }} />
-      <span>{updatedAt} • {freshness}</span>
+      <span>
+        {updatedAt === 'Just now' ? t('justNow', 'Just now') : updatedAt} • {t(freshness.toLowerCase(), freshness)}
+      </span>
     </div>
   );
 }

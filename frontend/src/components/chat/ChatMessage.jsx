@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { Sparkles, User, Info, MapPin, Thermometer, Umbrella, Wind, Droplets, Volume2, VolumeX, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { 
+  Sparkles, User, Info, MapPin, Thermometer, Umbrella, Wind, Droplets, 
+  Volume2, VolumeX, ShieldCheck, CheckCircle2, AlertTriangle, Compass 
+} from 'lucide-react';
 import { ChatIntentCard } from './ChatIntentCard';
 
-export function ChatMessage({ message, t = (k) => k }) {
+export function ChatMessage({ message, t = (k, f) => f || k }) {
   const isUser = message.sender === 'user';
   const { text, timestamp, richContent, understanding } = message;
   const [isPlaying, setIsPlaying] = useState(false);
@@ -48,13 +51,13 @@ export function ChatMessage({ message, t = (k) => k }) {
       }}>
         {isUser ? (
           <>
-            <span>You</span>
+            <span>{t('you', 'You')}</span>
             <User size={12} />
           </>
         ) : (
           <>
             <Sparkles size={12} style={{ color: 'var(--accent-blue)' }} />
-            <span>WeatherGPT</span>
+            <span>WeatherGPT AI</span>
           </>
         )}
         <span>• {timestamp}</span>
@@ -63,7 +66,7 @@ export function ChatMessage({ message, t = (k) => k }) {
       {/* Query Understanding Card if extracted (A11) */}
       {!isUser && understanding && (
         <div style={{ width: '100%', maxWidth: '85%' }}>
-          <ChatIntentCard understanding={understanding} />
+          <ChatIntentCard understanding={understanding} t={t} />
         </div>
       )}
 
@@ -86,7 +89,7 @@ export function ChatMessage({ message, t = (k) => k }) {
           {!isUser && 'speechSynthesis' in window && (
             <button
               onClick={handleSpeak}
-              title={isPlaying ? "Stop reading" : "Read aloud (A21)"}
+              title={isPlaying ? "Stop reading" : "Read aloud"}
               aria-label={isPlaying ? "Stop speech playback" : "Read response aloud"}
               style={{
                 background: 'transparent',
@@ -103,7 +106,7 @@ export function ChatMessage({ message, t = (k) => k }) {
           )}
         </div>
 
-        {/* Embedded Rich Weather Response Card (A11, A14, A16) */}
+        {/* Embedded Rich Weather Response Card */}
         {richContent && (
           <div style={{
             marginTop: '0.85rem',
@@ -130,9 +133,60 @@ export function ChatMessage({ message, t = (k) => k }) {
                   <Wind size={13} /> {richContent.wind}
                 </span>
               )}
+              {richContent.contextLabel && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent-indigo)', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-sm)' }}>
+                  <Compass size={13} /> {richContent.contextLabel}
+                </span>
+              )}
             </div>
 
-            {/* Impact & Recommendation */}
+            {/* STRICT SEPARATION: Official Warning vs AI Guidance */}
+            {richContent.officialWarning && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                borderLeft: '3px solid #ef4444',
+                padding: '0.55rem 0.75rem',
+                borderRadius: 'var(--radius-sm)',
+                color: '#ef4444',
+                fontSize: '0.8rem',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.4rem'
+              }}>
+                <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: '0.1rem' }} />
+                <div>
+                  <strong style={{ display: 'block', marginBottom: '0.15rem' }}>
+                    {t('officialWarning', 'Official Warning / Advisory')}
+                  </strong>
+                  <span>{richContent.officialWarning}</span>
+                </div>
+              </div>
+            )}
+
+            {/* AI Guidance */}
+            {(richContent.aiGuidance || richContent.tip) && (
+              <div style={{
+                background: 'rgba(56, 189, 248, 0.1)',
+                borderLeft: '3px solid var(--accent-blue)',
+                padding: '0.55rem 0.75rem',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--text-primary)',
+                fontSize: '0.8rem',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.4rem'
+              }}>
+                <Sparkles size={15} style={{ color: 'var(--accent-blue)', flexShrink: 0, marginTop: '0.1rem' }} />
+                <div>
+                  <strong style={{ display: 'block', marginBottom: '0.15rem', color: 'var(--accent-blue)' }}>
+                    {t('aiGuidance', 'WeatherGPT AI Guidance')}
+                  </strong>
+                  <span>{richContent.aiGuidance || richContent.tip}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Impact */}
             {richContent.impact && (
               <div style={{
                 background: 'rgba(234, 179, 8, 0.1)',
@@ -142,24 +196,11 @@ export function ChatMessage({ message, t = (k) => k }) {
                 color: 'var(--text-primary)',
                 fontSize: '0.8rem'
               }}>
-                <strong>Potential Impact: </strong>{richContent.impact}
+                <strong>{t('potentialImpact', 'Potential Impact')}: </strong>{richContent.impact}
               </div>
             )}
 
-            {richContent.tip && (
-              <div style={{
-                background: 'rgba(56, 189, 248, 0.1)',
-                borderLeft: '3px solid var(--accent-blue)',
-                padding: '0.45rem 0.65rem',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text-primary)',
-                fontSize: '0.8rem'
-              }}>
-                💡 <strong>Guidance: </strong>{richContent.tip}
-              </div>
-            )}
-
-            {/* Sources Used Checklist (A16) */}
+            {/* Sources Used Checklist */}
             {richContent.sourcesUsed && (
               <div style={{
                 fontSize: '0.72rem',
@@ -169,7 +210,7 @@ export function ChatMessage({ message, t = (k) => k }) {
                 borderRadius: 'var(--radius-sm)'
               }}>
                 <span style={{ fontWeight: 700, display: 'block', marginBottom: '0.2rem', color: 'var(--text-secondary)' }}>
-                  Sources Used:
+                  {t('sourcesUsed', 'Sources Used')}:
                 </span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
                   {richContent.sourcesUsed.map((s, idx) => (
@@ -184,7 +225,7 @@ export function ChatMessage({ message, t = (k) => k }) {
             {/* Disclaimer & AI attribution */}
             <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               <Info size={11} />
-              <span>{richContent.aiExplanationLabel || "WeatherGPT AI Synthesis (Mock Baseline)"}</span>
+              <span>{richContent.aiExplanationLabel || "WeatherGPT AI Synthesis"}</span>
             </div>
           </div>
         )}

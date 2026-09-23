@@ -6,15 +6,97 @@
   flex-direction: column;
 }
 
-.app-main {
-  flex: 1;
-  padding-top: 5rem; /* Height of header */
-  padding-bottom: 5rem; /* Space for mobile bottom nav */
+/* Desktop Vertical Navigation Sidebar */
+.app-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 250px;
+  background: var(--surface-color);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-right: 1px solid var(--surface-border);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.25rem 1rem;
+  z-index: 60;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
-@media (min-width: 768px) {
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-md);
+  font-size: 0.86rem;
+  font-weight: 550;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.sidebar-nav-item:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.sidebar-nav-item.active {
+  background: var(--accent-glow);
+  color: var(--accent-blue);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  font-weight: 750;
+}
+
+/* Responsive Shell & Main Content Offsets */
+@media (min-width: 900px) {
+  .app-sidebar {
+    display: flex !important;
+  }
+  .mobile-header {
+    display: none !important;
+  }
+  .mobile-bottom-nav {
+    display: none !important;
+  }
   .app-main {
+    margin-left: 250px;
+    width: calc(100% - 250px);
+    padding-top: 2rem;
     padding-bottom: 3rem;
+    box-sizing: border-box;
+  }
+  footer {
+    margin-left: 250px;
+    width: calc(100% - 250px);
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 899px) {
+  .app-sidebar {
+    display: none !important;
+  }
+  .mobile-header {
+    display: flex !important;
+  }
+  .app-main {
+    margin-left: 0;
+    width: 100%;
+    padding-top: 5rem;
+    padding-bottom: 5rem;
+    box-sizing: border-box;
+  }
+  footer {
+    margin-left: 0;
+    width: 100%;
   }
 }
 

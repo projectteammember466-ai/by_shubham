@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Sparkles, Activity, Compass, Info, ArrowRight } from 'lucide-react';
 
-export function WhyForecastPanel({ whyForecast, city, onClose, t = (k) => k }) {
+export function WhyForecastPanel({ whyForecast, city, onClose, t = (k, f) => f || k }) {
   if (!whyForecast) return null;
 
   return (
@@ -41,17 +41,19 @@ export function WhyForecastPanel({ whyForecast, city, onClose, t = (k) => k }) {
               <Sparkles size={20} />
             </div>
             <div>
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Why This Forecast?</h2>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 800 }}>
+                {t('whyForecast', 'Why this forecast?')}
+              </h2>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Atmospheric Diagnostic Breakdown for {city}
+                {t('atmosphericDiagnosticsFor', 'Atmospheric Diagnostic Breakdown for')} {city}
               </span>
             </div>
           </div>
 
           <button 
             onClick={onClose}
-            aria-label="Close why forecast panel"
-            style={{ padding: '0.35rem', color: 'var(--text-muted)', borderRadius: 'var(--radius-sm)' }}
+            aria-label={t('close', 'Close')}
+            style={{ padding: '0.35rem', color: 'var(--text-muted)', borderRadius: 'var(--radius-sm)', background: 'transparent', border: 'none', cursor: 'pointer' }}
           >
             <X size={20} />
           </button>
@@ -60,7 +62,7 @@ export function WhyForecastPanel({ whyForecast, city, onClose, t = (k) => k }) {
         {/* Step 1: Observed Signals */}
         <div style={{ marginBottom: '1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 800, color: 'var(--accent-blue)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-            <Activity size={14} /> 1. Observed Atmospheric Signals
+            <Activity size={14} /> 1. {t('observedSignals', 'Observed Atmospheric Signals')}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.65rem' }}>
             {whyForecast.signals?.map((sig, idx) => (
@@ -86,7 +88,7 @@ export function WhyForecastPanel({ whyForecast, city, onClose, t = (k) => k }) {
           marginBottom: '1.25rem'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 800, color: 'var(--accent-indigo)', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-            <Compass size={14} /> 2. Meteorological Reasoning
+            <Compass size={14} /> 2. {t('meteorologicalReasoning', 'Meteorological Reasoning')}
           </div>
           <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
             {whyForecast.reasoning}
@@ -102,7 +104,7 @@ export function WhyForecastPanel({ whyForecast, city, onClose, t = (k) => k }) {
           marginBottom: '1.25rem'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 800, color: 'var(--accent-blue)', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-            <Sparkles size={14} /> 3. WeatherGPT Takeaway
+            <Sparkles size={14} /> 3. {t('weatherGPTTakeaway', 'WeatherGPT Takeaway')}
           </div>
           <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.5, fontWeight: 500 }}>
             {whyForecast.aiExplanation}
@@ -113,7 +115,7 @@ export function WhyForecastPanel({ whyForecast, city, onClose, t = (k) => k }) {
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
           <Info size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
           <span>
-            WeatherGPT diagnostic reasoning is synthesized from numerical weather prediction parameters for educational demonstration.
+            {t('diagnosticDisclaimer', 'WeatherGPT diagnostic reasoning is synthesized from numerical weather prediction parameters for educational demonstration.')}
           </span>
         </div>
       </div>

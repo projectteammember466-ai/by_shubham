@@ -3,13 +3,13 @@ import { getWeatherIcon } from '../../utils/weatherHelpers';
 import { formatTemperature } from '../../utils/formatTemperature';
 import { Umbrella } from 'lucide-react';
 
-export function HourlyForecast({ hourly = [], tempUnit }) {
+export function HourlyForecast({ hourly = [], tempUnit, t = (k, f) => f || k }) {
   if (!hourly || hourly.length === 0) return null;
 
   return (
     <div style={{ marginTop: '1.5rem' }}>
       <h2 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem' }}>
-        Hourly Forecast
+        {t('hourlyForecast', 'Hourly Forecast')}
       </h2>
       <div 
         className="glass-card"
@@ -39,7 +39,7 @@ export function HourlyForecast({ hourly = [], tempUnit }) {
             }}
           >
             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-              {item.time}
+              {item.time === 'Now' ? t('now', 'Now') : item.time}
             </span>
             
             <div style={{ margin: '0.5rem 0' }}>

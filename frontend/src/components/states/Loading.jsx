@@ -1,7 +1,8 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 
-export function Loading({ message = "Loading weather data..." }) {
+export function Loading({ message, t = (k, f) => f || k }) {
+  const displayMsg = message || t('loading', 'Loading weather data...');
   return (
     <div style={{
       display: 'flex',
@@ -13,7 +14,7 @@ export function Loading({ message = "Loading weather data..." }) {
       color: 'var(--text-secondary)'
     }}>
       <Loader2 size={32} className="animate-spin" style={{ color: 'var(--accent-blue)', animation: 'spin 1s linear infinite' }} />
-      <p style={{ fontSize: '0.95rem', fontWeight: 500 }}>{message}</p>
+      <p style={{ fontSize: '0.95rem', fontWeight: 500 }}>{displayMsg}</p>
       <style>{`
         @keyframes spin {
           from { transform: rotate(0deg); }

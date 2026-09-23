@@ -25,7 +25,7 @@ export function AlertCard({ alert, t = (k, d) => d || k }) {
       {/* Alert Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-          <AlertBadge severity={alert.severity} />
+          <AlertBadge severity={alert.severity} t={t} />
           <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
             {alert.title}
           </h3>
@@ -38,12 +38,13 @@ export function AlertCard({ alert, t = (k, d) => d || k }) {
             padding: '0.3rem 0.65rem',
             fontSize: '0.78rem',
             gap: '0.3rem',
-            borderRadius: 'var(--radius-full)'
+            borderRadius: 'var(--radius-full)',
+            cursor: 'pointer'
           }}
           aria-expanded={showDetails}
-          aria-label={showDetails ? "Hide details" : "View details"}
+          aria-label={showDetails ? t('hideDetails', 'Hide Details') : t('viewDetails', 'View Details')}
         >
-          <span>{showDetails ? 'Hide Details' : 'View Details'}</span>
+          <span>{showDetails ? t('hideDetails', 'Hide Details') : t('viewDetails', 'View Details')}</span>
           {showDetails ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
       </div>
@@ -64,7 +65,7 @@ export function AlertCard({ alert, t = (k, d) => d || k }) {
         </span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
           <Calendar size={13} />
-          <span>{alert.validFrom} to {alert.validUntil}</span>
+          <span>{alert.validFrom} {t('to', 'to')} {alert.validUntil}</span>
         </span>
       </div>
 
@@ -84,7 +85,7 @@ export function AlertCard({ alert, t = (k, d) => d || k }) {
           color: 'var(--text-primary)',
           marginBottom: '0.75rem'
         }}>
-          <strong style={{ color: 'var(--accent-blue)' }}>💡 Safety Advice:</strong>{' '}
+          <strong style={{ color: 'var(--accent-blue)' }}>💡 {t('safetyAdvice', 'Safety Advice')}:</strong>{' '}
           {alert.aiExplanation?.recommendedAction || alert.safetyTip}
         </div>
       )}
@@ -98,7 +99,7 @@ export function AlertCard({ alert, t = (k, d) => d || k }) {
         gap: '0.35rem'
       }}>
         <ShieldCheck size={14} style={{ color: isHighSeverity ? '#ef4444' : '#eab308' }} />
-        <span>Source: <strong>{alert.officialWarning?.source || 'IMD / Meteorological Authority'}</strong></span>
+        <span>{t('source', 'Source')}: <strong>{alert.officialWarning?.source || 'IMD / Meteorological Authority'}</strong></span>
         {alert.officialWarning?.sourceType && (
           <span>({alert.officialWarning.sourceType})</span>
         )}
@@ -118,7 +119,7 @@ export function AlertCard({ alert, t = (k, d) => d || k }) {
             <div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-blue)', marginBottom: '0.25rem' }}>
                 <Sparkles size={13} />
-                <span>AI Meteorological Assessment</span>
+                <span>{t('aiAssessment', 'AI Meteorological Assessment')}</span>
               </div>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
                 {alert.aiExplanation.summary}

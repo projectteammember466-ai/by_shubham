@@ -1,14 +1,14 @@
 import React from 'react';
 import { Thermometer, CloudRain, Wind, Cloud, ShieldAlert, Activity } from 'lucide-react';
 
-export function MapLayerSelector({ activeLayer, onSelectLayer, t = (k) => k }) {
+export function MapLayerSelector({ activeLayer, onSelectLayer, t = (k, f) => f || k }) {
   const layers = [
-    { id: 'temperature', label: 'Temperature', icon: Thermometer, color: '#f97316' },
-    { id: 'rain', label: 'Rain', icon: CloudRain, color: '#38bdf8' },
-    { id: 'wind', label: 'Wind', icon: Wind, color: '#06b6d4' },
-    { id: 'clouds', label: 'Clouds', icon: Cloud, color: '#cbd5e1' },
-    { id: 'alerts', label: 'Alerts', icon: ShieldAlert, color: '#ef4444' },
-    { id: 'aqi', label: 'AQI', icon: Activity, color: '#10b981' }
+    { id: 'temperature', label: t('layerTemperature', 'Temperature'), icon: Thermometer, color: '#f97316' },
+    { id: 'rain', label: t('layerRain', 'Rain'), icon: CloudRain, color: '#38bdf8' },
+    { id: 'wind', label: t('layerWind', 'Wind'), icon: Wind, color: '#06b6d4' },
+    { id: 'clouds', label: t('layerClouds', 'Clouds'), icon: Cloud, color: '#cbd5e1' },
+    { id: 'alerts', label: t('layerAlerts', 'Alerts'), icon: ShieldAlert, color: '#ef4444' },
+    { id: 'aqi', label: t('layerAQI', 'AQI'), icon: Activity, color: '#10b981' }
   ];
 
   return (
@@ -23,7 +23,7 @@ export function MapLayerSelector({ activeLayer, onSelectLayer, t = (k) => k }) {
       border: '1px solid var(--surface-border)'
     }}>
       <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginRight: '0.25rem' }}>
-        Layers:
+        {t('layers', 'Layers')}:
       </span>
       {layers.map((layer) => {
         const Icon = layer.icon;
@@ -43,6 +43,7 @@ export function MapLayerSelector({ activeLayer, onSelectLayer, t = (k) => k }) {
               background: isSelected ? 'var(--accent-glow)' : 'transparent',
               color: isSelected ? 'var(--accent-blue)' : 'var(--text-secondary)',
               border: isSelected ? '1px solid var(--accent-blue)' : '1px solid transparent',
+              cursor: 'pointer',
               transition: 'all var(--transition-fast)'
             }}
           >

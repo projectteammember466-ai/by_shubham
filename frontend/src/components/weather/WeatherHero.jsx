@@ -2,18 +2,31 @@ import React, { useState } from 'react';
 import { getWeatherIcon } from '../../utils/weatherHelpers';
 import { formatTemperature } from '../../utils/formatTemperature';
 import { formatWind } from '../../utils/formatWind';
-import { MapPin, Droplets, Wind, Umbrella, ArrowUp, ArrowDown, Clock, HelpCircle, ShieldCheck, RefreshCw } from 'lucide-react';
+import { MapPin, Droplets, Wind, Umbrella, ArrowUp, ArrowDown, Clock, HelpCircle, ShieldCheck, RefreshCw, Star, Share2 } from 'lucide-react';
 import { ConfidenceBadge } from './ConfidenceBadge';
 import { FreshnessBadge } from './FreshnessBadge';
 import { WhyForecastPanel } from './WhyForecastPanel';
+import { localizeCondition } from '../../data/translations';
 
-export function WeatherHero({ weather, tempUnit, windUnit, onRefresh, isRefreshing = false, t = (k) => k }) {
+export function WeatherHero({ 
+  weather, 
+  tempUnit, 
+  windUnit, 
+  onRefresh, 
+  isRefreshing = false, 
+  lang = 'en', 
+  t = (k, f) => f || k,
+  isSaved = false,
+  onToggleSave,
+  onShare
+}) {
   const [showWhyPanel, setShowWhyPanel] = useState(false);
   const [localSpinning, setLocalSpinning] = useState(false);
 
   if (!weather) return null;
 
   const { location, current, metadata, confidence, whyForecast } = weather;
+  const conditionDisplay = localizeCondition(current.condition, lang);
 
   const handleRefresh = async () => {
     setLocalSpinning(true);
@@ -40,7 +53,7 @@ export function WeatherHero({ weather, tempUnit, windUnit, onRefresh, isRefreshi
         {/* Location, Freshness, Confidence & Refresh Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
           <div style={{ maxWidth: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               <MapPin size={20} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
               <h1 style={{
                 fontSize: '1.75rem',
@@ -51,6 +64,34 @@ export function WeatherHero({ weather, tempUnit, windUnit, onRefresh, isRefreshi
               }}>
                 {location.city}
               </h1>
+              {onToggleSave && (
+                <button
+                  onClick={onToggleSave}
+                  title={isSaved ? t('saved', 'Saved') : t('saveLocation', 'Save Location')}
+                  aria-label={isSaved ? "Remove from saved locations" : "Save location to favorites"}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '0.2rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'transform var(--transition-fast)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.15)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  <Star
+                    size={22}
+                    style={{
+                      color: isSaved ? '#f59e0b' : 'var(--text-muted)',
+                      fill: isSaved ? '#f59e0b' : 'transparent',
+                      transition: 'all var(--transition-fast)'
+                    }}
+                  />
+                </button>
+              )}
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginLeft: '1.65rem' }}>
               {location.region}{location.region && location.country ? ', ' : ''}{location.country}
@@ -61,12 +102,46 @@ export function WeatherHero({ weather, tempUnit, windUnit, onRefresh, isRefreshi
             <FreshnessBadge metadata={metadata} t={t} />
             <ConfidenceBadge confidence={confidence} t={t} />
             
+            {/* Share Weather Snapshot */}
+            {onShare && (
+              <button
+                onClick={onShare}
+                aria-label={t('shareWeather', 'Share Weather')}
+                title={t('shareWeather', 'Share Weather')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.3rem 0.65rem',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--surface-color)',
+                  border: '1px solid var(--surface-border)',
+                  fontSize: '0.75rem',
+                  color: 'var(--text-secondary)',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all var(--transition-fast)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--accent-blue)';
+                  e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                  e.currentTarget.style.borderColor = 'var(--surface-border)';
+                }}
+              >
+                <Share2 size={12} style={{ color: 'var(--accent-blue)' }} />
+                <span>{t('shareWeather', 'Share')}</span>
+              </button>
+            )}
+
             {/* Subtle Refresh Affordance */}
             <button
               onClick={handleRefresh}
               disabled={isSpinning}
-              aria-label="Refresh weather data"
-              title="Refresh weather data"
+              aria-label={t('refreshWeatherData', 'Refresh weather data')}
+              title={t('refreshWeatherData', 'Refresh weather data')}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -131,19 +206,19 @@ export function WeatherHero({ weather, tempUnit, windUnit, onRefresh, isRefreshi
                 {formatTemperature(current.temperature, tempUnit)}
               </div>
               <div style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-secondary)', marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <span>{current.condition}</span>
+                <span>{conditionDisplay}</span>
                 {current.rainProbability > 0 && (
                   <span className="badge badge-info" style={{ textTransform: 'none', padding: '0.2rem 0.5rem' }}>
                     <Umbrella size={12} /> {current.rainProbability}% {t('rainChance', 'rain')}
                   </span>
                 )}
-                {/* A15: Why This Forecast trigger */}
+                {/* Why This Forecast trigger */}
                 {whyForecast && (
                   <button
                     onClick={() => setShowWhyPanel(true)}
                     className="btn-secondary"
                     style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', gap: '0.25rem', borderRadius: 'var(--radius-full)' }}
-                    title="Click to view meteorological reasoning signals"
+                    title={t('viewMeteorologicalReasoning', 'Click to view meteorological reasoning signals')}
                   >
                     <HelpCircle size={12} style={{ color: 'var(--accent-blue)' }} />
                     <span>{t('whyForecast', 'Why this forecast?')}</span>
@@ -222,11 +297,11 @@ export function WeatherHero({ weather, tempUnit, windUnit, onRefresh, isRefreshi
           gap: '0.5rem'
         }}>
           <div>
-            Source: <strong style={{ color: 'var(--text-secondary)' }}>{metadata.source}</strong>
+            {t('source', 'Source')}: <strong style={{ color: 'var(--text-secondary)' }}>{metadata.source}</strong>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--accent-blue)' }}>
             <ShieldCheck size={12} />
-            <span>WeatherGPT Trust Verified Architecture</span>
+            <span>{t('trustVerified', 'WeatherGPT Trust Verified Architecture')}</span>
           </div>
         </div>
       </div>

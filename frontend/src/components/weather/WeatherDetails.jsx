@@ -1,25 +1,25 @@
 import React from 'react';
 import { Gauge, Eye, Sun, Umbrella, Sunrise, Sunset, Activity, Cloud, Thermometer } from 'lucide-react';
 
-export function WeatherDetails({ current }) {
+export function WeatherDetails({ current, t = (k, f) => f || k }) {
   if (!current) return null;
 
   const metrics = [
-    { label: "Pressure", value: current.pressure ? `${current.pressure} hPa` : null, icon: Gauge },
-    { label: "Visibility", value: current.visibility ? `${current.visibility} km` : null, icon: Eye },
-    { label: "UV Index", value: current.uvIndex !== undefined ? `${current.uvIndex} / 10` : null, icon: Sun },
-    { label: "Rain Chance", value: current.rainProbability !== undefined ? `${current.rainProbability}%` : null, icon: Umbrella },
-    { label: "Sunrise", value: current.sunrise || null, icon: Sunrise },
-    { label: "Sunset", value: current.sunset || null, icon: Sunset },
-    { label: "Air Quality (AQI)", value: current.aqi ? `${current.aqi} (${current.aqiCategory || ''})` : null, icon: Activity },
-    { label: "Cloud Cover", value: current.cloudCover !== undefined ? `${current.cloudCover}%` : null, icon: Cloud },
-    { label: "Dew Point", value: current.dewPoint !== undefined ? `${current.dewPoint}°C` : null, icon: Thermometer }
+    { label: t('pressure', 'Pressure'), value: current.pressure ? `${current.pressure} hPa` : null, icon: Gauge },
+    { label: t('visibility', 'Visibility'), value: current.visibility ? `${current.visibility} km` : null, icon: Eye },
+    { label: t('uvIndex', 'UV Index'), value: current.uvIndex !== undefined ? `${current.uvIndex} / 10` : null, icon: Sun },
+    { label: t('rainChance', 'Rain Chance'), value: current.rainProbability !== undefined ? `${current.rainProbability}%` : null, icon: Umbrella },
+    { label: t('sunrise', 'Sunrise'), value: current.sunrise || null, icon: Sunrise },
+    { label: t('sunset', 'Sunset'), value: current.sunset || null, icon: Sunset },
+    { label: t('airQuality', 'Air Quality (AQI)'), value: current.aqi ? `${current.aqi} (${current.aqiCategory || ''})` : null, icon: Activity },
+    { label: t('cloudCover', 'Cloud Cover'), value: current.cloudCover !== undefined ? `${current.cloudCover}%` : null, icon: Cloud },
+    { label: t('dewPoint', 'Dew Point'), value: current.dewPoint !== undefined ? `${current.dewPoint}°C` : null, icon: Thermometer }
   ].filter(m => m.value !== null);
 
   return (
     <div style={{ marginTop: '1.5rem' }}>
       <h2 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-primary)' }}>
-        Detailed Weather Metrics
+        {t('detailedMetrics', 'Detailed Weather Metrics')}
       </h2>
       <div style={{
         display: 'grid',

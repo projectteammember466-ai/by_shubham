@@ -1,8 +1,8 @@
 import React from 'react';
 import { WeatherMap } from '../components/map/WeatherMap';
-import { Card } from '../components/common/Card';
 import { MapPin, Navigation, Info, ArrowRight } from 'lucide-react';
 import { formatTemperature } from '../utils/formatTemperature';
+import { localizeCondition } from '../data/translations';
 
 export function MapView({
   selectedCity,
@@ -14,7 +14,8 @@ export function MapView({
   tempUnit,
   windUnit,
   onNavigateDashboard,
-  t = (k) => k
+  lang = 'en',
+  t = (k, f) => f || k
 }) {
   return (
     <div className="page-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -24,8 +25,11 @@ export function MapView({
         activeLayer={activeLayer}
         onSelectLayer={onSelectLayer}
         geoCoords={geoState?.coords}
+        location={weather?.location}
+        weather={weather}
         tempUnit={tempUnit}
         windUnit={windUnit}
+        lang={lang}
         t={t}
       />
 
@@ -47,7 +51,7 @@ export function MapView({
                 <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>({weather.location.country})</span>
               </div>
               <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                {formatTemperature(weather.current.temperature, tempUnit)} • {weather.current.condition} • Rain: {weather.current.rainProbability}%
+                {formatTemperature(weather.current.temperature, tempUnit)} • {localizeCondition(weather.current.condition, lang)} • {t('rain', 'Rain')}: {weather.current.rainProbability}%
               </p>
             </div>
           </div>
@@ -55,9 +59,9 @@ export function MapView({
           <button
             onClick={onNavigateDashboard}
             className="btn-primary"
-            style={{ gap: '0.4rem', fontSize: '0.85rem' }}
+            style={{ gap: '0.4rem', fontSize: '0.85rem', cursor: 'pointer' }}
           >
-            <span>View Complete Dashboard</span>
+            <span>{t('viewCompleteDashboard', 'View Complete Dashboard')}</span>
             <ArrowRight size={14} />
           </button>
         </div>

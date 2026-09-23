@@ -3,6 +3,7 @@ import { useTheme } from './hooks/useTheme';
 import { useWeather } from './hooks/useWeather';
 import { useLanguage } from './hooks/useLanguage';
 import { Navbar } from './components/layout/Navbar';
+import { Sidebar } from './components/layout/Sidebar';
 import { MobileNav } from './components/layout/MobileNav';
 import { Footer } from './components/layout/Footer';
 
@@ -13,6 +14,8 @@ import { History } from './pages/History';
 import { Settings } from './pages/Settings';
 import { MapView } from './pages/MapView';
 import { PipelineView } from './pages/PipelineView';
+import { HistoricalWeather } from './pages/HistoricalWeather';
+import { CompareWeather } from './pages/CompareWeather';
 
 export default function App() {
   const [theme, setTheme] = useTheme();
@@ -34,7 +37,9 @@ export default function App() {
             weatherState={weatherState}
             onNavigateChat={() => setActivePage('chat')}
             onNavigateMap={() => setActivePage('map')}
+            onNavigateHistorical={() => setActivePage('historical')}
             onAskAI={handleAskAI}
+            lang={lang}
             t={t}
           />
         );
@@ -50,6 +55,7 @@ export default function App() {
             tempUnit={weatherState.tempUnit}
             windUnit={weatherState.windUnit}
             onNavigateDashboard={() => setActivePage('home')}
+            lang={lang}
             t={t}
           />
         );
@@ -60,6 +66,8 @@ export default function App() {
             initialQuery={chatQuery}
             lang={lang}
             setLang={setLang}
+            userMode={weatherState.userMode}
+            setUserMode={weatherState.setUserMode}
             t={t}
           />
         );
@@ -75,7 +83,23 @@ export default function App() {
         );
       case 'pipeline':
         return (
-          <PipelineView activeCity={weatherState.weather?.location?.city || weatherState.city} />
+          <PipelineView 
+            activeCity={weatherState.weather?.location?.city || weatherState.city} 
+            lang={lang}
+            t={t}
+          />
+        );
+      case 'compare':
+        return (
+          <CompareWeather
+            initialCityA={weatherState.weather?.location?.city || weatherState.city || 'jodhpur'}
+            initialCityB="jaipur"
+            tempUnit={weatherState.tempUnit}
+            windUnit={weatherState.windUnit}
+            userMode={weatherState.userMode}
+            lang={lang}
+            t={t}
+          />
         );
       case 'history':
         return (
@@ -86,6 +110,7 @@ export default function App() {
               setActivePage('home');
             }}
             onClearHistory={weatherState.clearHistory}
+            lang={lang}
             t={t}
           />
         );
@@ -99,6 +124,10 @@ export default function App() {
             windUnit={weatherState.windUnit}
             setWindUnit={weatherState.setWindUnit}
             city={weatherState.city}
+            onSelectCity={(c) => {
+              weatherState.setCity(c);
+              setActivePage('home');
+            }}
             onRequestLocation={weatherState.requestLocation}
             geoState={weatherState.geoState}
             userMode={weatherState.userMode}
@@ -108,6 +137,20 @@ export default function App() {
             alertPreferences={weatherState.alertPreferences}
             setAlertPreferences={weatherState.setAlertPreferences}
             t={t}
+            onNavigate={setActivePage}
+          />
+        );
+      case 'historical':
+        return (
+          <HistoricalWeather
+            selectedCity={weatherState.city}
+            onSelectCity={weatherState.setCity}
+            weather={weatherState.weather}
+            tempUnit={weatherState.tempUnit}
+            windUnit={weatherState.windUnit}
+            onNavigateDashboard={() => setActivePage('home')}
+            lang={lang}
+            t={t}
           />
         );
       default:
@@ -116,7 +159,9 @@ export default function App() {
             weatherState={weatherState}
             onNavigateChat={() => setActivePage('chat')}
             onNavigateMap={() => setActivePage('map')}
+            onNavigateHistorical={() => setActivePage('historical')}
             onAskAI={handleAskAI}
+            lang={lang}
             t={t}
           />
         );
@@ -125,6 +170,22 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      {/* Desktop Vertical Sidebar */}
+      <Sidebar
+        activePage={activePage}
+        setActivePage={setActivePage}
+        theme={theme}
+        setTheme={setTheme}
+        tempUnit={weatherState.tempUnit}
+        setTempUnit={weatherState.setTempUnit}
+        city={weatherState.weather?.location?.city || weatherState.city}
+        userMode={weatherState.userMode}
+        lang={lang}
+        setLang={setLang}
+        t={t}
+      />
+
+      {/* Mobile Top Navigation Header */}
       <Navbar
         activePage={activePage}
         setActivePage={setActivePage}
@@ -132,7 +193,7 @@ export default function App() {
         setTheme={setTheme}
         tempUnit={weatherState.tempUnit}
         setTempUnit={weatherState.setTempUnit}
-        city={weatherState.city}
+        city={weatherState.weather?.location?.city || weatherState.city}
         onRequestLocation={weatherState.requestLocation}
         userMode={weatherState.userMode}
         lang={lang}
@@ -146,7 +207,7 @@ export default function App() {
         </div>
       </main>
 
-      <Footer />
+      <Footer t={t} lang={lang} />
 
       <MobileNav activePage={activePage} setActivePage={setActivePage} t={t} />
     </div>

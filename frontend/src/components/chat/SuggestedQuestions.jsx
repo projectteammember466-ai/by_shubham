@@ -1,9 +1,19 @@
 import React from 'react';
 import { Sparkles } from 'lucide-react';
+import { getContextSuggestedQuestions } from '../../data/contextModes';
 import { INITIAL_SUGGESTED_QUESTIONS, WEATHER_AWARE_QUESTIONS } from '../../data/chatData';
 
-export function SuggestedQuestions({ onSelectQuestion, weatherAware = false }) {
-  const questions = weatherAware ? WEATHER_AWARE_QUESTIONS : INITIAL_SUGGESTED_QUESTIONS;
+export function SuggestedQuestions({ 
+  onSelectQuestion, 
+  weatherAware = false, 
+  userMode = 'general', 
+  lang = 'en', 
+  t = (k, f) => f || k 
+}) {
+  const contextQuestions = getContextSuggestedQuestions(userMode, lang);
+  const questions = (contextQuestions && contextQuestions.length > 0)
+    ? contextQuestions
+    : (weatherAware ? WEATHER_AWARE_QUESTIONS : INITIAL_SUGGESTED_QUESTIONS);
 
   return (
     <div style={{ margin: '0.75rem 0' }}>
@@ -17,7 +27,7 @@ export function SuggestedQuestions({ onSelectQuestion, weatherAware = false }) {
         textTransform: 'uppercase',
         marginBottom: '0.5rem'
       }}>
-        <Sparkles size={12} style={{ color: 'var(--accent-blue)' }} /> Suggested Questions
+        <Sparkles size={12} style={{ color: 'var(--accent-blue)' }} /> {t('suggestedQuestions', 'Suggested Questions')}
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
@@ -32,7 +42,8 @@ export function SuggestedQuestions({ onSelectQuestion, weatherAware = false }) {
               border: '1px solid var(--surface-border)',
               fontSize: '0.8rem',
               color: 'var(--text-secondary)',
-              transition: 'all var(--transition-fast)'
+              transition: 'all var(--transition-fast)',
+              cursor: 'pointer'
             }}
           >
             {q}
