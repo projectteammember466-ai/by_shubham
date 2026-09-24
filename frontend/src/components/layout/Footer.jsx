@@ -27,21 +27,6 @@ export function Footer({ t = (k, f) => f || k, lang = 'en' }) {
               {t('footerDesc', 'AI-Powered Conversational Weather Assistant providing weather intelligence, visual atmospheric dashboards, and smart forecasting.')}
             </p>
           </div>
-
-          <div className="glass-card" style={{
-            padding: '1rem',
-            borderColor: 'rgba(234, 179, 8, 0.25)',
-            background: 'rgba(234, 179, 8, 0.05)',
-            maxWidth: '540px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-              <AlertTriangle size={18} style={{ color: '#facc15', flexShrink: 0, marginTop: '2px' }} />
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                <strong style={{ color: 'var(--text-primary)' }}>{t('importantDisclaimer', 'Important Disclaimer')}:</strong>{' '}
-                {t('footerDisclaimerText', 'WeatherGPT is an AI weather dashboard demonstration project. It is not an official disaster-warning or civil protection authority. Always consult official national meteorological services for official weather advisories and emergency directives.')}
-              </div>
-            </div>
-          </div>
         </div>
 
         <div style={{
